@@ -1,37 +1,53 @@
 global main
 
 extern imprimirTablero
+extern cargarMatriz
 
 %include 'macros.asm'
 
 section .data
-    ; bordeSup        db '-','-','-','-','-','-','-'
-    tablero         db '-','-',' ',' ',' ','-','-'
+;   bordeSup        db '-','-','-','-','-','-','-'
+    tablero         db '-','-','O','O','O','-','-'
+                    db '-','-','O','O','O','-','-'
+                    db 'O','O','O','O','O','O','O'
+                    db 'O',' ',' ',' ',' ',' ','O'
+                    db 'O',' ',' ','X',' ',' ','O'
                     db '-','-',' ',' ',' ','-','-'
-                    db ' ',' ','O',' ',' ',' ',' '
-                    db ' ',' ','O',' ',' ',' ',' '
-                    db ' ',' ','O','X',' ',' ',' '
                     db '-','-',' ',' ',' ','-','-'
-                    db '-','-',' ',' ',' ','-','-'
-    ; bordeInf        db '-','-','-','-','-','-','-'
+;   bordeInf        db '-','-','-','-','-','-','-'
 
-    longitudFila    dq 7
-    longitudElem    dq 1
-    filaZorro       dq 5
-    columnaZorro    dq 4
-    msgMovimientoZorro      db 'Ingrese un movimiento para el zorro: ',0
+    longitudFila            dq 7
+    longitudElem            dq 1
+    filaZorro               dq 5
+    columnaZorro            dq 4
     cantMovimientos         dq 100
+
+    msgMovimientoZorro      db 'Ingrese un movimiento para el zorro: ',0
+    msgElegirOrientacion    db 'Elija una orientación para el tablero',10
+                            db '(N si no quiere rotar, I para rotar a Izquierda, D para rotar a Derecha y V para dar vuelta)',0
     comandoClear            db 'clear',0
 
 section .bss
     movimiento              resb 10
+    orientacion             resb 10
     RESULTMOVZORRO          resb 1
+    RESULTORIENTACION       resb 1
     RESULT                  resb 1
     
 section .text
 main:
 
-    
+    mPuts   msgElegirOrientacion
+    mGets   orientacion
+
+    mov     rdi,tablero
+    xor     rsi,rsi
+    mov     sil,[orientacion]
+    mov     rdx,filaZorro
+    mov     rcx,columnaZorro
+    sub     rsp,8
+    call    cargarMatriz
+    add     rsp,8
 
 moverZorro:
 
@@ -244,6 +260,26 @@ validarMovimientoZorro:
 movimientoZorroValido:
     ret
 ; ********************************
+validarOrientacion:
+    mov     byte[RESULTORIENTACION],'S'
+
+    cmp     byte[orientacion],'N'    ; Sin orientación
+    je      orientacionValida
+    cmp     byte[orientacion],'I'    ; Rotado 90° a Izq
+    je      orientacionValida
+    cmp     byte[orientacion],'D'    ; Rotado 90° a Der
+    je      orientacionValida
+    cmp     byte[orientacion],'V'    ; Rotado 180°
+    je      orientacionValida
+
+    mov     byte[RESULTORIENTACION],'N'
+orientacionValida:
+    ret
+; ********************************
+
+
+
+
 
 ; %macro compararSiguiente 1
 
