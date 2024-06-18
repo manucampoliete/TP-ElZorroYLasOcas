@@ -1,6 +1,6 @@
 global imprimirTablero
 
-extern puts
+%include 'macros.asm'
 
 section .data
     filaInc             db '    | | | |    ',0
@@ -47,10 +47,7 @@ llenarAndImprimirFila:
     call    llenarFila
     add     rsp,8
 
-    mov     rdi,[dirFila]
-    sub     rsp,8
-    call    puts
-    add     rsp,8
+    mPuts   qword[dirFila]
 
     add     qword[dirTablero],7
     inc     qword[contador]
