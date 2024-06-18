@@ -1,7 +1,8 @@
 global main
 
-extern imprimirTablero
 extern cargarMatriz
+extern reemplazarIconos
+extern imprimirTablero
 
 %include 'macros.asm'
 
@@ -25,11 +26,15 @@ section .data
     msgMovimientoZorro      db 'Ingrese un movimiento para el zorro: ',0
     msgElegirOrientacion    db 'Elija una orientación para el tablero',10
                             db '(N si no quiere rotar, I para rotar a Izquierda, D para rotar a Derecha y V para dar vuelta)',0
+    msgElegirIconoZorro     db 'Elija un ícono para el zorro (X por default): ',0
+    msgElegiriconoOca       db 'Elija un ícono para la oca (O por default): ',0
     comandoClear            db 'clear',0
 
 section .bss
     movimiento              resb 10
     orientacion             resb 10
+    iconoZorro              resb 10
+    iconoOca                resb 10
     RESULTMOVZORRO          resb 1
     RESULTORIENTACION       resb 1
     RESULT                  resb 1
@@ -40,6 +45,12 @@ main:
     mPuts   msgElegirOrientacion
     mGets   orientacion
 
+    mPuts   msgElegirIconoZorro
+    mGets   iconoZorro
+
+    mPuts   msgElegiriconoOca
+    mGets   iconoOca
+
     mov     rdi,tablero
     xor     rsi,rsi
     mov     sil,[orientacion]
@@ -47,6 +58,15 @@ main:
     mov     rcx,columnaZorro
     sub     rsp,8
     call    cargarMatriz
+    add     rsp,8
+
+    mov     rdi,tablero
+    xor     rsi,rsi
+    mov     sil,[iconoZorro]
+    xor     rdx,rdx
+    mov     dl,[iconoOca]
+    sub     rsp,8
+    call    reemplazarIconos
     add     rsp,8
 
 moverZorro:
@@ -93,7 +113,8 @@ moverIzq:
 
     add     rbx,rax
 
-    cmp     byte[tablero + rbx],'O'
+    mov     al,byte[tablero + rbx]
+    cmp     al,[iconoOca]
     jne     compararVacio
 
     ;mov     r14,-1
@@ -112,7 +133,8 @@ compararVacio:
     jne     moverZorro
 
 moverZorroAdyacente:
-    mov     byte[tablero + rbx],'X'
+    mov     al,[iconoZorro]
+    mov     byte[tablero + rbx],al
     
     inc     rbx
     mov     byte[tablero + rbx],' '
@@ -145,7 +167,8 @@ moverDer:
     cmp     byte[tablero + rbx],' '
     jne     moverZorro
 
-    mov     byte[tablero + rbx],'X'
+    mov     al,[iconoZorro]
+    mov     byte[tablero + rbx],al
     
     dec     rbx
     mov     byte[tablero + rbx],' '
@@ -172,7 +195,8 @@ moverArriba:
     cmp     byte[tablero + rbx],' '
     jne     moverZorro
 
-    mov     byte[tablero + rbx],'X'
+    mov     al,[iconoZorro]
+    mov     byte[tablero + rbx],al
     
     add     rbx,[longitudFila]
     mov     byte[tablero + rbx],' '
@@ -198,7 +222,8 @@ moverAbajo:
     cmp     byte[tablero + rbx],' '
     jne     moverZorro
 
-    mov     byte[tablero + rbx],'X'
+    mov     al,[iconoZorro]
+    mov     byte[tablero + rbx],al
     
     sub     rbx,[longitudFila]
     mov     byte[tablero + rbx],' '
@@ -222,7 +247,8 @@ compararSiguienteIzq:
     cmp     byte[tablero + rbx],' '
     jne     noEstaLibre
     
-    mov     byte[tablero + rbx],'X'
+    mov     al,[iconoZorro]
+    mov     byte[tablero + rbx],al
 
     inc     rbx
     mov     byte[tablero + rbx],' '
