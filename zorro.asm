@@ -1,199 +1,198 @@
 global main
 
-extern puts
-extern gets
+extern imprimirTablero
 
-%macro mPuts 1
-    mov     rdi,%1 ; const char *str
-    sub     rsp,8
-    call    puts
-    add     rsp,8
-%endmacro
-
-%macro mGets 1
-    mov     rdi,%1 ; char *buffer
-    sub     rsp,8
-    call    gets
-    add     rsp,8
-%endmacro
+%include 'macros.asm'
 
 section .data
-    tablero         db 'N','N',' ',' ',' ','N','N',0
-                    db 'N','N',' ',' ',' ','N','N',0
-                    db ' ',' ',' ',' ',' ',' ',' ',0
-                    db ' ',' ',' ',' ',' ',' ',' ',0
-                    db ' ',' ',' ','X',' ',' ',' ',0
-                    db 'N','N',' ',' ',' ','N','N',0
-                    db 'N','N',' ',' ',' ','N','N',0
+    ; bordeSup        db '-','-','-','-','-','-','-'
+    tablero         db '-','-',' ',' ',' ','-','-'
+                    db '-','-',' ',' ',' ','-','-'
+                    db ' ',' ','O',' ',' ',' ',' '
+                    db ' ',' ','O',' ',' ',' ',' '
+                    db ' ',' ','O','X',' ',' ',' '
+                    db '-','-',' ',' ',' ','-','-'
+                    db '-','-',' ',' ',' ','-','-'
+    ; bordeInf        db '-','-','-','-','-','-','-'
 
-    longitudFila    dq 8
+    longitudFila    dq 7
     longitudElem    dq 1
-
     filaZorro       dq 5
     columnaZorro    dq 4
-
-    msgMovimientoZorro      db "Ingrese un movimiento para el zorro: ",0
-
-    RESULT                  db 1
+    msgMovimientoZorro      db 'Ingrese un movimiento para el zorro: ',0
+    cantMovimientos         dq 100
+    comandoClear            db 'clear',0
 
 section .bss
-    movimiento              resb 1
-    contador                resq 1
+    movimiento              resb 10
+    RESULTMOVZORRO          resb 1
+    RESULT                  resb 1
     
 section .text
 main:
 
-    mov     rsi,10
+    
 
 moverZorro:
-    mov     qword[contador],7
-    mov     r15,tablero
 
-imprimirFila:
-    cmp     qword[contador],0
-    je      impresionFinalizada
+    mSystem comandoClear
+    
+    mov     rdi,tablero
+    sub     rsp,8
+    call    imprimirTablero
+    add     rsp,8
 
-    mPuts   r15
+    cmp     qword[cantMovimientos],0
+    je      fin
 
-    add     r15,[longitudFila]
-    dec     qword[contador]
-    jmp     imprimirFila
+    mPuts   msgMovimientoZorro
+    mGets   movimiento
 
-impresionFinalizada:
-     cmp     rsi,0
-     je      fin
+    cmp     byte[movimiento],'A'
+    je      moverIzq
 
-     mPuts   msgMovimientoZorro
-     mGets   movimiento
+    cmp     byte[movimiento],'D'
+    je      moverDer
 
-     cmp     byte[movimiento],'A'
-     je      moverIzq
+    cmp     byte[movimiento],'W'
+    je      moverArriba
 
-     cmp     byte[movimiento],'D'
-     je      moverDer
+    cmp     byte[movimiento],'S'
+    je      moverAbajo
 
-     cmp     byte[movimiento],'W'
-     je      moverArriba
+    jmp     fin
 
-     cmp     byte[movimiento],'S'
-     je      moverAbajo
+moverIzq:
+    cmp     qword[columnaZorro],1
+    je      moverZorro
 
-     jmp     fin
+    mov     rax,[filaZorro]
+    dec     rax
+    imul    rax,[longitudFila]
 
- moverIzq:
-     mov     rax,[filaZorro]
-     dec     rax
-     imul    rax,[longitudFila]
+    mov     rbx,[columnaZorro]
+    dec     rbx
+    imul    rbx,[longitudElem]
+    dec     rbx
 
-     mov     rbx,[columnaZorro]
-     dec     rbx
-     imul    rbx,[longitudElem]
-     dec     rbx
+    add     rbx,rax
 
-     add     rbx,rax
+    cmp     byte[tablero + rbx],'O'
+    jne     compararVacio
 
-     cmp     byte[tablero + rbx],'O'
-     jne     compararVacio
-     mov    r14,-1
-     compararSiguiente r14
-     cmp    byte[RESULT],0
-     je     moverZorro
-     jmp    cambiarColumna
+    ;mov     r14,-1
+    ;compararSiguiente r14
+
+    sub     rsp,8
+    call    compararSiguienteIzq
+    add     rsp,8
+
+    cmp     byte[RESULT],0
+    je      moverZorro
+    jmp     cambiarColumna
 
 compararVacio:
-     cmp     byte[tablero + rbx],' '
-     jne     moverZorro
+    cmp     byte[tablero + rbx],' '
+    jne     moverZorro
 
 moverZorroAdyacente:
-     mov     byte[tablero + rbx],'X'
+    mov     byte[tablero + rbx],'X'
     
-     inc     rbx
-     mov     byte[tablero + rbx],' '
+    inc     rbx
+    mov     byte[tablero + rbx],' '
 
-     dec     byte[columnaZorro]
-     jmp     restarRsi
+    dec     byte[columnaZorro]
+    jmp     restarCantMovimientos
 
 cambiarColumna:
     sub     byte[columnaZorro],2
 
-restarRsi:
-     dec     rsi
-     jmp     moverZorro
+restarCantMovimientos:
+    dec     qword[cantMovimientos]
+    jmp     moverZorro
 
- moverDer:
-     mov     rax,[filaZorro]
-     dec     rax
-     imul    rax,[longitudFila]
+moverDer:
+    cmp     qword[columnaZorro],7
+    je      moverZorro
 
-     mov     rbx,[columnaZorro]
-     dec     rbx
-     imul    rbx,[longitudElem]
-     inc     rbx
+    mov     rax,[filaZorro]
+    dec     rax
+    imul    rax,[longitudFila]
 
-     add     rbx,rax
+    mov     rbx,[columnaZorro]
+    dec     rbx
+    imul    rbx,[longitudElem]
+    inc     rbx
 
-     cmp     byte[tablero + rbx],' '
-     jne     moverZorro
+    add     rbx,rax
 
-     mov     byte[tablero + rbx],'X'
+    cmp     byte[tablero + rbx],' '
+    jne     moverZorro
+
+    mov     byte[tablero + rbx],'X'
     
-     dec     rbx
-     mov     byte[tablero + rbx],' '
+    dec     rbx
+    mov     byte[tablero + rbx],' '
 
-     inc     byte[columnaZorro]
+    inc     byte[columnaZorro]
 
-     dec     rsi
-     jmp     moverZorro
+    dec     qword[cantMovimientos]
+    jmp     moverZorro
 
- moverArriba:
-     mov     rax,[filaZorro]
-     sub     rax,2
-     imul    rax,[longitudFila]
+moverArriba:
+    cmp     qword[filaZorro],1
+    je      moverZorro
 
-     mov     rbx,[columnaZorro]
-     dec     rbx
-     imul    rbx,[longitudElem]
+    mov     rax,[filaZorro]
+    sub     rax,2
+    imul    rax,[longitudFila]
 
-     add     rbx,rax
+    mov     rbx,[columnaZorro]
+    dec     rbx
+    imul    rbx,[longitudElem]
 
-     cmp     byte[tablero + rbx],' '
-     jne     moverZorro
+    add     rbx,rax
 
-     mov     byte[tablero + rbx],'X'
+    cmp     byte[tablero + rbx],' '
+    jne     moverZorro
+
+    mov     byte[tablero + rbx],'X'
     
-     add     rbx,[longitudFila]
-     mov     byte[tablero + rbx],' '
+    add     rbx,[longitudFila]
+    mov     byte[tablero + rbx],' '
 
-     dec     byte[filaZorro]
+    dec     byte[filaZorro]
 
-     dec     rsi
-     jmp     moverZorro
+    dec     qword[cantMovimientos]
+    jmp     moverZorro
 
+moverAbajo:
+    cmp     qword[filaZorro],7
+    je      moverZorro
 
- moverAbajo:
-     mov     rax,[filaZorro]
-     imul    rax,[longitudFila]
+    mov     rax,[filaZorro]
+    imul    rax,[longitudFila]
 
-     mov     rbx,[columnaZorro]
-     dec     rbx
-     imul    rbx,[longitudElem]
+    mov     rbx,[columnaZorro]
+    dec     rbx
+    imul    rbx,[longitudElem]
 
-     add     rbx,rax
+    add     rbx,rax
 
-     cmp     byte[tablero + rbx],' '
-     jne     moverZorro
+    cmp     byte[tablero + rbx],' '
+    jne     moverZorro
 
-     mov     byte[tablero + rbx],'X'
+    mov     byte[tablero + rbx],'X'
     
-     sub     rbx,[longitudFila]
-     mov     byte[tablero + rbx],' '
+    sub     rbx,[longitudFila]
+    mov     byte[tablero + rbx],' '
 
-     inc     byte[filaZorro]
+    inc     byte[filaZorro]
 
-     dec     rsi
-     jmp     moverZorro
+    dec     qword[cantMovimientos]
+    jmp     moverZorro
     
- fin:
+fin:
     ret
 
 ; ********************************
@@ -216,29 +215,55 @@ compararSiguienteIzq:
     mov     byte[tablero + rbx],' '
 
     inc     byte[RESULT]
+
 noEstaLibre:
-    
     ret
 ; ********************************
-%macro compararSiguiente 1
+validarMovimientoZorro:
+    mov     byte[RESULTMOVZORRO],'S'
 
-    mov     byte[RESULT],0
+    cmp     byte[movimiento],'Q'    ; Arriba-Izq
+    je      movimientoZorroValido
+    cmp     byte[movimiento],'W'    ; Arriba
+    je      movimientoZorroValido
+    cmp     byte[movimiento],'E'    ; Arriba-Der
+    je      movimientoZorroValido
+    cmp     byte[movimiento],'A'    ; Izq
+    je      movimientoZorroValido
+    cmp     byte[movimiento],'S'    ; Abajo
+    je      movimientoZorroValido
+    cmp     byte[movimiento],'D'    ; Der
+    je      movimientoZorroValido
+    cmp     byte[movimiento],'Z'    ; Abajo-Izq
+    je      movimientoZorroValido
+    cmp     byte[movimiento],'V'    ; Abajo-Der
+    je      movimientoZorroValido
 
-    add     rbx,%1
-    cmp     byte[tablero + rbx],' '
-    jne     noEstaLibre
-    
-    mov     byte[tablero + rbx],'X'
+    mov     byte[RESULTMOVZORRO],'N'
 
-    inc     rbx
-    mov     byte[tablero + rbx],' '
-    
-    inc     rbx
-    mov     byte[tablero + rbx],' '
-
-    inc     byte[RESULT]
-noEstaLibre:
-    
+movimientoZorroValido:
     ret
+; ********************************
 
-%endmacro
+; %macro compararSiguiente 1
+
+;     mov     byte[RESULT],0
+
+;     add     rbx,%1
+;     cmp     byte[tablero + rbx],' '
+;     jne     noEstaLibre
+    
+;     mov     byte[tablero + rbx],'X'
+
+;     inc     rbx
+;     mov     byte[tablero + rbx],' '
+    
+;     inc     rbx
+;     mov     byte[tablero + rbx],' '
+
+;     inc     byte[RESULT]
+; noEstaLibre:
+    
+;     ret
+
+; %endmacro

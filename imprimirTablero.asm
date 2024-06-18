@@ -5,12 +5,12 @@ extern puts
 section .data
     filaInc             db '    | | | |    ',0
     filaComp            db '| | | | | | | |',0
-    contador            dq 1
  
 section .bss
     dirTablero          resq 1
     dirFila             resq 1
     esComp              resb 1
+    contador            resq 1
 
 section .text
 ;rdi: dirección de inicio del tablero de 7x7. Al imprimir se omiten las 4 celdas de las 4 esquinas.
@@ -23,6 +23,7 @@ section .text
 ;    | | | |    
 imprimirTablero:
     mov     [dirTablero],rdi
+    mov     qword[contador],1
 
 nuevaFila:
     cmp     qword[contador],8
