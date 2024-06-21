@@ -6,16 +6,31 @@ extern imprimirTablero
 
 %include 'macros.asm'
 
+%macro compararSiguiente 1
+
+    add     rbx,%1
+    cmp     byte[tablero + rbx],' '
+    jne     moverZorro
+    
+    mov     al,[iconoZorro]
+    mov     byte[tablero + rbx],al
+
+    sub     rbx,%1
+    mov     byte[tablero + rbx],' '
+    
+    sub     rbx,%1
+    mov     byte[tablero + rbx],' '
+
+%endmacro
+
 section .data
-;   bordeSup        db '-','-','-','-','-','-','-'
-    tablero         db '-','-','O','O','O','-','-'
-                    db '-','-','O','O','O','-','-'
-                    db 'O','O','O','O','O','O','O'
-                    db 'O',' ',' ',' ',' ',' ','O'
-                    db 'O',' ',' ','X',' ',' ','O'
+    tablero         db '-','-',' ',' ',' ','-','-'
+                    db '-','-',' ',' ',' ','-','-'
+                    db ' ','O',' ','O',' ',' ',' '
+                    db ' ',' ','O',' ',' ',' ',' '
+                    db ' ','O','O','X',' ',' ',' '
                     db '-','-',' ',' ',' ','-','-'
                     db '-','-',' ',' ',' ','-','-'
-;   bordeInf        db '-','-','-','-','-','-','-'
 
     longitudFila            dq 7
     longitudElem            dq 1
@@ -24,8 +39,8 @@ section .data
     cantMovimientos         dq 100
 
     msgMovimientoZorro      db 'Ingrese un movimiento para el zorro: ',0
-    msgElegirOrientacion    db 'Elija una orientación para el tablero',10
-                            db '(N si no quiere rotar, I para rotar a Izquierda, D para rotar a Derecha y V para dar vuelta)',0
+    msgElegirOrientacion    db 'Elija una orientación para el tablero (N si no quiere rotar, I para',10
+                            db 'rotar a Izquierda, D para rotar a Derecha y V para dar vuelta): ',0
     msgElegirIconoZorro     db 'Elija un ícono para el zorro (X por default): ',0
     msgElegiriconoOca       db 'Elija un ícono para la oca (O por default): ',0
     comandoClear            db 'clear',0
@@ -37,18 +52,20 @@ section .bss
     iconoOca                resb 10
     RESULTMOVZORRO          resb 1
     RESULTORIENTACION       resb 1
-    RESULT                  resb 1
     
 section .text
 main:
 
-    mPuts   msgElegirOrientacion
+    mov     rdi,msgElegirOrientacion
+    mPrintf
     mGets   orientacion
 
-    mPuts   msgElegirIconoZorro
+    mov     rdi,msgElegirIconoZorro
+    mPrintf
     mGets   iconoZorro
 
-    mPuts   msgElegiriconoOca
+    mov     rdi,msgElegiriconoOca
+    mPrintf
     mGets   iconoOca
 
     mov     rdi,tablero
@@ -113,26 +130,23 @@ moverIzq:
 
     add     rbx,rax
 
+    cmp     qword[columnaZorro],2
+    je      compararVacioIzq
+
     mov     al,byte[tablero + rbx]
     cmp     al,[iconoOca]
-    jne     compararVacio
+    jne     compararVacioIzq
 
-    ;mov     r14,-1
-    ;compararSiguiente r14
+    mov     r14,-1
+    compararSiguiente r14
 
-    sub     rsp,8
-    call    compararSiguienteIzq
-    add     rsp,8
+    jmp     cambiarColumnaIzq
 
-    cmp     byte[RESULT],0
-    je      moverZorro
-    jmp     cambiarColumna
-
-compararVacio:
+compararVacioIzq:
     cmp     byte[tablero + rbx],' '
     jne     moverZorro
 
-moverZorroAdyacente:
+moverZorroAdyacenteIzq:
     mov     al,[iconoZorro]
     mov     byte[tablero + rbx],al
     
@@ -142,12 +156,11 @@ moverZorroAdyacente:
     dec     byte[columnaZorro]
     jmp     restarCantMovimientos
 
-cambiarColumna:
+cambiarColumnaIzq:
     sub     byte[columnaZorro],2
+    jmp     restarCantMovimientos
 
-restarCantMovimientos:
-    dec     qword[cantMovimientos]
-    jmp     moverZorro
+
 
 moverDer:
     cmp     qword[columnaZorro],7
@@ -164,9 +177,23 @@ moverDer:
 
     add     rbx,rax
 
+    cmp     qword[columnaZorro],6
+    je      compararVacioDer
+
+    mov     al,byte[tablero + rbx]
+    cmp     al,[iconoOca]
+    jne     compararVacioDer
+
+    mov     r14,1
+    compararSiguiente r14
+
+    jmp     cambiarColumnaDer
+    
+compararVacioDer:
     cmp     byte[tablero + rbx],' '
     jne     moverZorro
 
+moverZorroAdyacenteDer:
     mov     al,[iconoZorro]
     mov     byte[tablero + rbx],al
     
@@ -174,9 +201,13 @@ moverDer:
     mov     byte[tablero + rbx],' '
 
     inc     byte[columnaZorro]
+    jmp     restarCantMovimientos
 
-    dec     qword[cantMovimientos]
-    jmp     moverZorro
+cambiarColumnaDer:
+    add     byte[columnaZorro],2
+    jmp     restarCantMovimientos
+
+
 
 moverArriba:
     cmp     qword[filaZorro],1
@@ -192,9 +223,24 @@ moverArriba:
 
     add     rbx,rax
 
+    cmp     qword[filaZorro],2
+    je      compararVacioArr
+    
+    mov     al,byte[tablero + rbx]
+    cmp     al,[iconoOca]
+    jne     compararVacioArr
+
+    mov     r14,[longitudFila]
+    imul    r14,r14,-1
+    compararSiguiente r14
+
+    jmp     cambiarFilaArr
+
+compararVacioArr:
     cmp     byte[tablero + rbx],' '
     jne     moverZorro
 
+moverZorroAdyacenteArr:
     mov     al,[iconoZorro]
     mov     byte[tablero + rbx],al
     
@@ -202,9 +248,13 @@ moverArriba:
     mov     byte[tablero + rbx],' '
 
     dec     byte[filaZorro]
+    jmp     restarCantMovimientos
 
-    dec     qword[cantMovimientos]
-    jmp     moverZorro
+cambiarFilaArr:
+    sub     byte[filaZorro],2
+    jmp     restarCantMovimientos
+    
+
 
 moverAbajo:
     cmp     qword[filaZorro],7
@@ -219,9 +269,23 @@ moverAbajo:
 
     add     rbx,rax
 
+    cmp     qword[filaZorro],6
+    je      compararVacioAbj
+
+    mov     al,byte[tablero + rbx]
+    cmp     al,[iconoOca]
+    jne     compararVacioAbj
+
+    mov     r14,[longitudFila]
+    compararSiguiente r14
+    
+    jmp     cambiarFilaAbj
+
+compararVacioAbj:
     cmp     byte[tablero + rbx],' '
     jne     moverZorro
 
+moverZorroAdyacenteAbj:
     mov     al,[iconoZorro]
     mov     byte[tablero + rbx],al
     
@@ -229,37 +293,22 @@ moverAbajo:
     mov     byte[tablero + rbx],' '
 
     inc     byte[filaZorro]
+    jmp     restarCantMovimientos
 
+cambiarFilaAbj:
+    add     byte[filaZorro],2
+    jmp     restarCantMovimientos
+    
+
+
+restarCantMovimientos:
     dec     qword[cantMovimientos]
     jmp     moverZorro
-    
+
 fin:
     ret
-
 ; ********************************
 ; RUTINAS INTERNAS
-; ********************************
-compararSiguienteIzq:
-
-    mov     byte[RESULT],0
-
-    dec     rbx
-    cmp     byte[tablero + rbx],' '
-    jne     noEstaLibre
-    
-    mov     al,[iconoZorro]
-    mov     byte[tablero + rbx],al
-
-    inc     rbx
-    mov     byte[tablero + rbx],' '
-    
-    inc     rbx
-    mov     byte[tablero + rbx],' '
-
-    inc     byte[RESULT]
-
-noEstaLibre:
-    ret
 ; ********************************
 validarMovimientoZorro:
     mov     byte[RESULTMOVZORRO],'S'
@@ -299,33 +348,10 @@ validarOrientacion:
     je      orientacionValida
 
     mov     byte[RESULTORIENTACION],'N'
+    
 orientacionValida:
     ret
 ; ********************************
 
 
 
-
-
-; %macro compararSiguiente 1
-
-;     mov     byte[RESULT],0
-
-;     add     rbx,%1
-;     cmp     byte[tablero + rbx],' '
-;     jne     noEstaLibre
-    
-;     mov     byte[tablero + rbx],'X'
-
-;     inc     rbx
-;     mov     byte[tablero + rbx],' '
-    
-;     inc     rbx
-;     mov     byte[tablero + rbx],' '
-
-;     inc     byte[RESULT]
-; noEstaLibre:
-    
-;     ret
-
-; %endmacro
