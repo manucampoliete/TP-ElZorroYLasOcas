@@ -25,11 +25,11 @@ extern imprimirTablero
 
 section .data
     tablero         db '-','-',' ',' ',' ','-','-'
-                    db '-','-',' ',' ',' ','-','-'
-                    db ' ','O',' ','O',' ',' ',' '
-                    db ' ',' ','O',' ',' ',' ',' '
-                    db ' ','O','O','X',' ',' ',' '
-                    db '-','-',' ',' ',' ','-','-'
+                    db '-','-','O','O','O','-','-'
+                    db ' ','O',' ',' ',' ','O',' '
+                    db ' ','O',' ',' ',' ','O',' '
+                    db ' ','O',' ','X',' ','O',' '
+                    db '-','-','O','O','O','-','-'
                     db '-','-',' ',' ',' ','-','-'
 
     longitudFila            dq 7
@@ -37,6 +37,8 @@ section .data
     filaZorro               dq 5
     columnaZorro            dq 4
     cantMovimientos         dq 100
+    turnoZorro              db 1
+    ocasComidas             db 0
 
     msgMovimientoZorro      db 'Ingrese un movimiento para el zorro: ',0
     msgElegirOrientacion    db 'Elija una orientación para el tablero (N si no quiere rotar, I para',10
@@ -44,6 +46,8 @@ section .data
     msgElegirIconoZorro     db 'Elija un ícono para el zorro (X por default): ',0
     msgElegiriconoOca       db 'Elija un ícono para la oca (O por default): ',0
     comandoClear            db 'clear',0
+    msgHaGanadoElZorro      db 'Ha ganado el Zorro!',0
+    msgHanGanadoLasOcas     db 'Han ganado las ocas!',0
 
 section .bss
     movimiento              resb 10
@@ -86,17 +90,33 @@ main:
     call    reemplazarIconos
     add     rsp,8
 
-moverZorro:
+
+loopPrincipal:
 
     mSystem comandoClear
-    
+
     mov     rdi,tablero
     sub     rsp,8
     call    imprimirTablero
     add     rsp,8
 
-    cmp     qword[cantMovimientos],0
-    je      fin
+    cmp     byte[ocasComidas],12
+    je      ganoZorro
+
+    ; sub     rsp,8
+    ; call    zorroPuedeMoverse
+    ; add     rsp,8
+
+    ; cmp     rax,0
+    ; je      ganaronOcas
+
+    cmp     byte[turnoZorro],1
+    je      moverZorro
+
+    jmp     moverOcas
+
+; MOVER ZORRO ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+moverZorro:
 
     mPuts   msgMovimientoZorro
     mGets   movimiento
@@ -113,7 +133,7 @@ moverZorro:
     cmp     byte[movimiento],'S'
     je      moverAbajo
 
-    jmp     fin
+    jmp     loopPrincipal
 
 moverIzq:
     cmp     qword[columnaZorro],1
@@ -139,12 +159,13 @@ moverIzq:
 
     mov     r14,-1
     compararSiguiente r14
+    inc     byte[ocasComidas]
 
     jmp     cambiarColumnaIzq
 
 compararVacioIzq:
     cmp     byte[tablero + rbx],' '
-    jne     moverZorro
+    jne     loopPrincipal
 
 moverZorroAdyacenteIzq:
     mov     al,[iconoZorro]
@@ -154,11 +175,12 @@ moverZorroAdyacenteIzq:
     mov     byte[tablero + rbx],' '
 
     dec     byte[columnaZorro]
-    jmp     restarCantMovimientos
+;   mov     byte[turnoZorro],0
+    jmp     loopPrincipal
 
 cambiarColumnaIzq:
     sub     byte[columnaZorro],2
-    jmp     restarCantMovimientos
+    jmp     loopPrincipal
 
 
 
@@ -186,12 +208,13 @@ moverDer:
 
     mov     r14,1
     compararSiguiente r14
+    inc     byte[ocasComidas]
 
     jmp     cambiarColumnaDer
     
 compararVacioDer:
     cmp     byte[tablero + rbx],' '
-    jne     moverZorro
+    jne     loopPrincipal
 
 moverZorroAdyacenteDer:
     mov     al,[iconoZorro]
@@ -201,11 +224,12 @@ moverZorroAdyacenteDer:
     mov     byte[tablero + rbx],' '
 
     inc     byte[columnaZorro]
-    jmp     restarCantMovimientos
+;   mov     byte[turnoZorro],0
+    jmp     loopPrincipal
 
 cambiarColumnaDer:
     add     byte[columnaZorro],2
-    jmp     restarCantMovimientos
+    jmp     loopPrincipal
 
 
 
@@ -233,12 +257,13 @@ moverArriba:
     mov     r14,[longitudFila]
     imul    r14,r14,-1
     compararSiguiente r14
+    inc     byte[ocasComidas]
 
     jmp     cambiarFilaArr
 
 compararVacioArr:
     cmp     byte[tablero + rbx],' '
-    jne     moverZorro
+    jne     loopPrincipal
 
 moverZorroAdyacenteArr:
     mov     al,[iconoZorro]
@@ -248,11 +273,12 @@ moverZorroAdyacenteArr:
     mov     byte[tablero + rbx],' '
 
     dec     byte[filaZorro]
-    jmp     restarCantMovimientos
+;   mov     byte[turnoZorro],0
+    jmp     loopPrincipal
 
 cambiarFilaArr:
     sub     byte[filaZorro],2
-    jmp     restarCantMovimientos
+    jmp     loopPrincipal
     
 
 
@@ -278,12 +304,13 @@ moverAbajo:
 
     mov     r14,[longitudFila]
     compararSiguiente r14
+    inc     byte[ocasComidas]
     
     jmp     cambiarFilaAbj
 
 compararVacioAbj:
     cmp     byte[tablero + rbx],' '
-    jne     moverZorro
+    jne     loopPrincipal
 
 moverZorroAdyacenteAbj:
     mov     al,[iconoZorro]
@@ -293,17 +320,25 @@ moverZorroAdyacenteAbj:
     mov     byte[tablero + rbx],' '
 
     inc     byte[filaZorro]
-    jmp     restarCantMovimientos
+;   mov     byte[turnoZorro],0
+    jmp     loopPrincipal
 
 cambiarFilaAbj:
     add     byte[filaZorro],2
-    jmp     restarCantMovimientos
-    
+    jmp     loopPrincipal
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; MOVER OCAS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+moverOcas:
+    jmp     loopPrincipal
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-restarCantMovimientos:
-    dec     qword[cantMovimientos]
-    jmp     moverZorro
+ganoZorro:
+    mPuts   msgHaGanadoElZorro
+    jmp     fin
+
+ganaronOcas:
+    mPuts   msgHanGanadoLasOcas
 
 fin:
     ret
