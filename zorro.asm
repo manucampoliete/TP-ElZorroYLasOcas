@@ -3,6 +3,7 @@ global main
 extern cargarMatriz
 extern reemplazarIconos
 extern imprimirTablero
+extern calcularDesplazamiento
 
 %include 'macros.asm'
 
@@ -36,6 +37,10 @@ section .data
     longitudElem            dq 1
     filaZorro               dq 5
     columnaZorro            dq 4
+    movimientosOca  times 0 db ' '
+    movOcaCostado1          db 'A'
+    movOcaAdelante          db 'S'
+    movOcaCostado2          db 'D'
     cantMovimientos         dq 100
     turnoZorro              db 1
     ocasComidas             db 0
@@ -46,37 +51,57 @@ section .data
     msgElegirIconoZorro     db 'Elija un ícono para el zorro (X por default): ',0
     msgElegiriconoOca       db 'Elija un ícono para la oca (O por default): ',0
     comandoClear            db 'clear',0
+    msgPedirPosicionOca     db 'Ingrese fila (1 a 7) y columna (1 a 7) separados por un espacio: ',0
+    formatoPosicionOca      db '%hhi %hhi',0
+    msgPedirMovimientoOca   db 'Ingrese un movimiento para la oca: ',0
+    msgNoHayOca             db 'Allí no hay una oca! Elija otra posición: ',0
     msgHaGanadoElZorro      db 'Ha ganado el Zorro!',0
     msgHanGanadoLasOcas     db 'Han ganado las ocas!',0
 
 section .bss
-    movimiento              resb 10
-    orientacion             resb 10
+    movimientoZorro         resb 10
+    movimientoOca           resb 10
+    posicionOca             resb 10
+    filOca                  resb 1
+    colOca                  resb 1
+    orientacionTablero      resb 10
     iconoZorro              resb 10
     iconoOca                resb 10
     RESULTMOVZORRO          resb 1
+    RESULTMOVOCA            resb 1
     RESULTORIENTACION       resb 1
     
 section .text
 main:
 
+pedirOrientacion:
     mov     rdi,msgElegirOrientacion
     mPrintf
-    mGets   orientacion
+    mGets   orientacionTablero
 
+    sub     rsp,8
+    call    validarOrientacion
+    add     rsp,8
+
+    cmp     byte[RESULTORIENTACION],'S'
+    jne     pedirOrientacion
+
+pedirIconoZorro:
     mov     rdi,msgElegirIconoZorro
     mPrintf
     mGets   iconoZorro
 
+pedirIconoOca:
     mov     rdi,msgElegiriconoOca
     mPrintf
     mGets   iconoOca
 
     mov     rdi,tablero
     xor     rsi,rsi
-    mov     sil,[orientacion]
+    mov     sil,[orientacionTablero]
     mov     rdx,filaZorro
     mov     rcx,columnaZorro
+    mov     r8,movimientosOca
     sub     rsp,8
     call    cargarMatriz
     add     rsp,8
@@ -119,21 +144,26 @@ loopPrincipal:
 moverZorro:
 
     mPuts   msgMovimientoZorro
-    mGets   movimiento
+    mGets   movimientoZorro
 
-    cmp     byte[movimiento],'A'
+    sub     rsp,8
+    call    validarMovimientoZorro
+    add     rsp,8
+
+    cmp     byte[RESULTMOVZORRO],'S'
+    jne     moverZorro
+
+    cmp     byte[movimientoZorro],'A'
     je      moverIzq
 
-    cmp     byte[movimiento],'D'
+    cmp     byte[movimientoZorro],'D'
     je      moverDer
 
-    cmp     byte[movimiento],'W'
+    cmp     byte[movimientoZorro],'W'
     je      moverArriba
 
-    cmp     byte[movimiento],'S'
+    cmp     byte[movimientoZorro],'S'
     je      moverAbajo
-
-    jmp     loopPrincipal
 
 moverIzq:
     cmp     qword[columnaZorro],1
@@ -165,7 +195,7 @@ moverIzq:
 
 compararVacioIzq:
     cmp     byte[tablero + rbx],' '
-    jne     loopPrincipal
+    jne     moverZorro
 
 moverZorroAdyacenteIzq:
     mov     al,[iconoZorro]
@@ -175,7 +205,7 @@ moverZorroAdyacenteIzq:
     mov     byte[tablero + rbx],' '
 
     dec     byte[columnaZorro]
-;   mov     byte[turnoZorro],0
+    mov     byte[turnoZorro],0
     jmp     loopPrincipal
 
 cambiarColumnaIzq:
@@ -214,7 +244,7 @@ moverDer:
     
 compararVacioDer:
     cmp     byte[tablero + rbx],' '
-    jne     loopPrincipal
+    jne     moverZorro
 
 moverZorroAdyacenteDer:
     mov     al,[iconoZorro]
@@ -224,7 +254,7 @@ moverZorroAdyacenteDer:
     mov     byte[tablero + rbx],' '
 
     inc     byte[columnaZorro]
-;   mov     byte[turnoZorro],0
+    mov     byte[turnoZorro],0
     jmp     loopPrincipal
 
 cambiarColumnaDer:
@@ -263,7 +293,7 @@ moverArriba:
 
 compararVacioArr:
     cmp     byte[tablero + rbx],' '
-    jne     loopPrincipal
+    jne     moverZorro
 
 moverZorroAdyacenteArr:
     mov     al,[iconoZorro]
@@ -273,7 +303,7 @@ moverZorroAdyacenteArr:
     mov     byte[tablero + rbx],' '
 
     dec     byte[filaZorro]
-;   mov     byte[turnoZorro],0
+    mov     byte[turnoZorro],0
     jmp     loopPrincipal
 
 cambiarFilaArr:
@@ -310,7 +340,7 @@ moverAbajo:
 
 compararVacioAbj:
     cmp     byte[tablero + rbx],' '
-    jne     loopPrincipal
+    jne     moverZorro
 
 moverZorroAdyacenteAbj:
     mov     al,[iconoZorro]
@@ -318,9 +348,9 @@ moverZorroAdyacenteAbj:
     
     sub     rbx,[longitudFila]
     mov     byte[tablero + rbx],' '
-
+ 
     inc     byte[filaZorro]
-;   mov     byte[turnoZorro],0
+    mov     byte[turnoZorro],0
     jmp     loopPrincipal
 
 cambiarFilaAbj:
@@ -330,6 +360,114 @@ cambiarFilaAbj:
 
 ; MOVER OCAS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 moverOcas:
+
+    mPuts   msgPedirPosicionOca
+    mGets   posicionOca
+
+    mov     rdi,posicionOca
+    mov     rsi,formatoPosicionOca
+    mov     rdx,filOca
+    mov     rcx,colOca
+    mSscanf
+
+    cmp     rax,2
+    jl      moverOcas
+
+    xor     rdi,rdi
+    mov     dil,[filOca]
+    xor     rsi,rsi
+    mov     sil,[colOca]
+    mov     rdx,[longitudFila]
+    mov     rcx,[longitudElem]
+    sub     rsp,8
+    call    calcularDesplazamiento
+    add     rsp,8
+
+    mov     rbx,rax
+    mov     al,byte[tablero + rbx]
+    cmp     al,[iconoOca]
+    ; je      verSiOcaPuedeMoverse
+    je      pedirMovimientoOca
+
+    mPuts   msgNoHayOca
+    jmp     moverOcas
+
+; verSiOcaPuedeMoverse:
+;     sub     rsp,8
+;     call    ocaPuedeMoverse
+;     add     rsp,8
+
+;     cmp     rax,1
+;     je      pedirMovimientoOca
+
+;     mPuts   msgOcaNoPuedeMoverse
+;     jmp     moverOca
+
+pedirMovimientoOca:
+    mPuts   msgPedirMovimientoOca
+    mGets   movimientoOca
+
+    sub     rsp,8
+    call    validarMovimientoOca
+    add     rsp,8
+
+    cmp     byte[RESULTMOVOCA],'S'
+    jne     pedirMovimientoOca
+
+    cmp     byte[movimientoOca],'A'
+    jne     moverOcaDer
+    cmp     byte[colOca],1
+    je      pedirMovimientoOca
+    dec     rbx
+    cmp     byte[tablero + rbx],' '
+    jne     pedirMovimientoOca
+    mov     al,[iconoOca]
+    mov     [tablero + rbx],al
+    inc     rbx
+    mov     byte[tablero + rbx],' '
+    jmp     esTurnoZorro
+
+moverOcaDer:
+    cmp     byte[movimientoOca],'D'
+    jne     moverOcaArr
+    cmp     byte[colOca],7
+    je      pedirMovimientoOca
+    inc     rbx
+    cmp     byte[tablero + rbx],' '
+    jne     pedirMovimientoOca
+    mov     al,[iconoOca]
+    mov     [tablero + rbx],al
+    dec     rbx
+    mov     byte[tablero + rbx],' '
+    jmp     esTurnoZorro
+
+moverOcaArr:
+    cmp     byte[movimientoOca],'W'
+    jne     moverOcaAbj
+    cmp     byte[filOca],1
+    je      pedirMovimientoOca
+    sub     rbx,[longitudFila]
+    cmp     byte[tablero + rbx],' '
+    jne     pedirMovimientoOca
+    mov     al,[iconoOca]
+    mov     [tablero + rbx],al
+    add     rbx,[longitudFila]
+    mov     byte[tablero + rbx],' '
+    jmp     esTurnoZorro
+
+moverOcaAbj:
+    cmp     byte[filOca],7
+    je      pedirMovimientoOca
+    add     rbx,[longitudFila]
+    cmp     byte[tablero + rbx],' '
+    jne     pedirMovimientoOca
+    mov     al,[iconoOca]
+    mov     [tablero + rbx],al
+    sub     rbx,[longitudFila]
+    mov     byte[tablero + rbx],' '
+
+esTurnoZorro:
+    mov     byte[turnoZorro],1
     jmp     loopPrincipal
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -348,21 +486,21 @@ fin:
 validarMovimientoZorro:
     mov     byte[RESULTMOVZORRO],'S'
 
-    cmp     byte[movimiento],'Q'    ; Arriba-Izq
+    cmp     byte[movimientoZorro],'Q'    ; Arriba-Izq
     je      movimientoZorroValido
-    cmp     byte[movimiento],'W'    ; Arriba
+    cmp     byte[movimientoZorro],'W'    ; Arriba
     je      movimientoZorroValido
-    cmp     byte[movimiento],'E'    ; Arriba-Der
+    cmp     byte[movimientoZorro],'E'    ; Arriba-Der
     je      movimientoZorroValido
-    cmp     byte[movimiento],'A'    ; Izq
+    cmp     byte[movimientoZorro],'A'    ; Izq
     je      movimientoZorroValido
-    cmp     byte[movimiento],'S'    ; Abajo
+    cmp     byte[movimientoZorro],'S'    ; Abajo
     je      movimientoZorroValido
-    cmp     byte[movimiento],'D'    ; Der
+    cmp     byte[movimientoZorro],'D'    ; Der
     je      movimientoZorroValido
-    cmp     byte[movimiento],'Z'    ; Abajo-Izq
+    cmp     byte[movimientoZorro],'Z'    ; Abajo-Izq
     je      movimientoZorroValido
-    cmp     byte[movimiento],'V'    ; Abajo-Der
+    cmp     byte[movimientoZorro],'V'    ; Abajo-Der
     je      movimientoZorroValido
 
     mov     byte[RESULTMOVZORRO],'N'
@@ -373,13 +511,13 @@ movimientoZorroValido:
 validarOrientacion:
     mov     byte[RESULTORIENTACION],'S'
 
-    cmp     byte[orientacion],'N'    ; Sin orientación
+    cmp     byte[orientacionTablero],'N'    ; Sin orientación
     je      orientacionValida
-    cmp     byte[orientacion],'I'    ; Rotado 90° a Izq
+    cmp     byte[orientacionTablero],'I'    ; Rotado 90° a Izq
     je      orientacionValida
-    cmp     byte[orientacion],'D'    ; Rotado 90° a Der
+    cmp     byte[orientacionTablero],'D'    ; Rotado 90° a Der
     je      orientacionValida
-    cmp     byte[orientacion],'V'    ; Rotado 180°
+    cmp     byte[orientacionTablero],'V'    ; Rotado 180°
     je      orientacionValida
 
     mov     byte[RESULTORIENTACION],'N'
@@ -387,6 +525,25 @@ validarOrientacion:
 orientacionValida:
     ret
 ; ********************************
+validarMovimientoOca:
 
+    mov     byte[RESULTMOVOCA],'S'
+
+    mov     al,[movimientoOca]
+
+    cmp     al,[movOcaCostado1]
+    je      movimientoOcaValido
+
+    cmp     al,[movOcaAdelante]
+    je      movimientoOcaValido
+    
+    cmp     al,[movOcaCostado2]
+    je      movimientoOcaValido
+
+    mov     byte[RESULTMOVOCA],'N'
+
+movimientoOcaValido:
+    ret
+; ********************************
 
 

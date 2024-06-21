@@ -3,8 +3,9 @@ global imprimirTablero
 %include 'macros.asm'
 
 section .data
-    filaInc             db '    | | | |    ',0
-    filaComp            db '| | | | | | | |',0
+    indicesCol          db '   1 2 3 4 5 6 7',0
+    filaInc             db '%li     | | | |    ',10,0
+    filaComp            db '%li | | | | | | | |',10,0
  
 section .bss
     dirTablero          resq 1
@@ -24,6 +25,7 @@ section .text
 imprimirTablero:
     mov     [dirTablero],rdi
     mov     qword[contador],1
+    mPuts   indicesCol
 
 nuevaFila:
     cmp     qword[contador],8
@@ -47,7 +49,9 @@ llenarAndImprimirFila:
     call    llenarFila
     add     rsp,8
 
-    mPuts   qword[dirFila]
+    mov     rdi,qword[dirFila]
+    mov     rsi,[contador]
+    mPrintf
 
     add     qword[dirTablero],7
     inc     qword[contador]
@@ -65,14 +69,14 @@ llenarFila:
     mov     rcx,3
     mov     rsi,[dirTablero]
     add     rsi,2
-    lea     rdi,[filaInc + 5]
+    lea     rdi,[filaInc + 9]
 
     jmp     llenarCelda
 
 configurarParaFilaCompleta:
     mov     rcx,7
     mov     rsi,[dirTablero]
-    lea     rdi,[filaComp + 1]
+    lea     rdi,[filaComp + 5]
 
 llenarCelda:
 

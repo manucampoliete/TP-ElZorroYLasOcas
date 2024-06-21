@@ -1,4 +1,4 @@
-global calcularDezplazamiento
+global calcularDesplazamiento
 
 section .data
 
@@ -11,7 +11,7 @@ section .text
 ;rcx: longitud de un elemento de la matriz en bytes.
 ;Se asume que los desplazamientos siempre caen dentro de la matriz, por eso no se necesita saber el tamaño de la misma.
 ;Devuelve el rax el desplazamiento correspondiente.
-calcularDezplazamiento:
+calcularDesplazamiento:
 
 ;   (rdi) = i
 ;   (rsi) = j

@@ -25,8 +25,13 @@ section .data
                         db '-','-','O','O','O','-','-'
                         db '-','-','O','O','O','-','-'
 
+    movimientosOca1     db 'SDW'
+    movimientosOca2     db 'WAS'
+    movimientosOca3     db 'DWA'
+
 section .bss
     dirNuevoTablero     resq 1
+    dirNuevosMovOcas    resq 1
 
 section .text
 ;rdi: dirección efectiva del tablero
@@ -36,6 +41,10 @@ section .text
 ;     'V', sobreescribe la orientación por default, cargando el tablero dado vuelta (rotado 180°)
 ;rdx: dirección de la fila del zorro (campo de 64 bits)
 ;rcx: dirección de la columna del zorro (campo de 64 bits)
+;r8: dirección del campo de 3 bytes con los movimientos posibles para la oca.
+;   - primer byte: movimiento para un costado
+;   - segundo byte: movimiento hacia adelante
+;   - tercer byte: movimiento hacia el otro costado
 cargarMatriz:
 
     cmp     sil,78 ; 78[10] = Ascii('N')
@@ -46,6 +55,7 @@ cargarMatriz:
     mov     qword[dirNuevoTablero],tableroRotadoIzq
     mov     qword[rdx],4
     mov     qword[rcx],5
+    mov     qword[dirNuevosMovOcas],movimientosOca1
     jmp     efectuarCarga
 
 verSiEsRotacionDerecha:
@@ -54,6 +64,7 @@ verSiEsRotacionDerecha:
     mov     qword[dirNuevoTablero],tableroRotadoDer
     mov     qword[rdx],4
     mov     qword[rcx],3
+    mov     qword[dirNuevosMovOcas],movimientosOca2
     jmp     efectuarCarga
 
 verSiEsRotacionCompleta:
@@ -62,10 +73,17 @@ verSiEsRotacionCompleta:
     mov     qword[dirNuevoTablero],tableroDadoVuelta
     mov     qword[rdx],3
     mov     qword[rcx],4
+    mov     qword[dirNuevosMovOcas],movimientosOca3
 
 efectuarCarga:
     mov     rsi,[dirNuevoTablero]
     mov     rcx,49
+    rep movsb
+
+copiarMovimientosOca:
+    mov     rsi,[dirNuevosMovOcas]
+    mov     rdi,r8
+    mov     rcx,3
     rep movsb
 
 finCarga:
