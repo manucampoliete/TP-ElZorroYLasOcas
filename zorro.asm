@@ -29,26 +29,30 @@ extern calcularDesplazamiento
     mPrintf
 %endmacro
 
+%macro mInterrumpirOGuardarPartida 1
+    cmp     %1,'q'
+    je      interrupcionDePartida
+
+    cmp     %1,'g'
+    je      guardarPartida
+%endmacro
+
 section .data
-    tablero         db '-','-','O','O','O','-','-'
-                    db '-','-','O','O','O','-','-'
-                    db 'O','O','O','O','O','O','O'
-                    db 'O',' ',' ',' ',' ',' ','O'
-                    db 'O',' ',' ','X',' ',' ','O'
-                    db '-','-',' ',' ',' ','-','-'
-                    db '-','-',' ',' ',' ','-','-'
-
+    dataPartida     times 0 db ' '
+    tablero                 db '-','-','O','O','O','-','-'
+                            db '-','-','O','O','O','-','-'
+                            db 'O','O','O','O','O','O','O'
+                            db 'O',' ',' ',' ',' ',' ','O'
+                            db 'O',' ',' ','X',' ',' ','O'
+                            db '-','-',' ',' ',' ','-','-'
+                            db '-','-',' ',' ',' ','-','-'
     desplazamientoZorro     dq 31
-
     movimientosOca  times 0 db ' '
     movOcaCostado1          db 'A'
     movOcaAdelante          db 'S'
     movOcaCostado2          db 'D'
-
     turnoZorro              db 1
-
     ocasComidas             db 0
-
     cantMovZorroIzq         dq 0
     cantMovZorroDer         dq 0
     cantMovZorroArr         dq 0
@@ -57,6 +61,8 @@ section .data
     cantMovZorroArrDer      dq 0
     cantMovZorroAbjIzq      dq 0
     cantMovZorroAbjDer      dq 0
+    iconoZorro              db 'X'
+    iconoOca                db 'O'
 
 ;   Constantes
     LONGITUD_ELEM           equ 1
@@ -82,54 +88,115 @@ section .data
     ES_TURNO_ZORRO          equ 1
     ES_TURNO_OCAS           equ 0
 
-    msgMovimientoZorro      db 'Ingrese un movimiento para el zorro: ',0
-    msgElegirOrientacion    db 'Elija una orientación para el tablero (N si no quiere rotar, I para',10
-                            db 'rotar a Izquierda, D para rotar a Derecha y V para dar vuelta): ',0
-    msgElegirIconoZorro     db 'Elija un ícono para el zorro (X por default): ',0
-    msgElegiriconoOca       db 'Elija un ícono para la oca (O por default): ',0
-    comandoClear            db 'clear',0
-    msgPedirPosicionOca     db 'Ingrese fila (1 a 7) y columna (1 a 7) separados por un espacio: ',0
-    formatoPosicionOca      db '%hhi %hhi',0
-    msgPedirMovimientoOca   db 'Ingrese un movimiento para la oca: ',0
-    msgNoHayOca             db 'Allí no hay una oca! Elija otra posición: ',0
-    msgHaGanadoElZorro      db 'Ha ganado el Zorro!',0
-    msgHanGanadoLasOcas     db 'Han ganado las ocas!',0
-    msgEstadisticas         db 'Cantidad de movimientos en la dirección <%s> = %li',10,0
-    msgIzq                  db 'Izquierda',0
-    msgDer                  db 'Derecha',0
-    msgArr                  db 'Arriba',0
-    msgAbj                  db 'Abajo',0
-    msgArrIzq               db 'Arriba-Izquierda',0
-    msgArrDer               db 'Arriba-Derecha',0
-    msgAbjIzq               db 'Abajo-Izquierda',0
-    msgAbjDer               db 'Abajo-Derecha',0
-    msgInterrupcionPartida  db 'Se ha interrumpido la partida!',0
+    msgCargarPartidaExistente       db '¿Quieres cargar una partida? [s/n]',0
+    modoAperturaArchLectura         db 'rb',0
+    modoAperturaArchEscritura       db 'wb',0
+    msgPedirNombreArch              db 'Ingresar el nombre del archivo',0
+    msgPedirNombreArchNuevaPartida  db '¿Qué nombre quiere ponerle a la partida?',0
+    msgYaExiste                     db 'Ya existe una partida con ese nombre. Intente con otro',0
+    msgErrorAperturaArch            db 'La partida buscada no existe, vuelva a intentarlo o inicie una nueva partida',0
+    msgErrorLecturaArch             db 'Error al leer el archivo',0
+    msgMovimientoZorro              db 'Ingrese un movimiento para el zorro: ',0
+    msgElegirOrientacion            db 'Elija una orientación para el tablero (N si no quiere rotar, I para',10
+                                    db 'rotar a Izquierda, D para rotar a Derecha y V para dar vuelta): ',0
+    msgElegirIconoZorro             db 'Elija un ícono para el zorro (X por default): ',0
+    msgElegiriconoOca               db 'Elija un ícono para la oca (O por default): ',0
+    comandoClear                    db 'clear',0
+    msgPedirPosicionOca             db 'Ingrese fila (1 a 7) y columna (1 a 7) separados por un espacio: ',0
+    formatoPosicionOca              db '%hhi %hhi',0
+    msgPedirMovimientoOca           db 'Ingrese un movimiento para la oca: ',0
+    msgNoHayOca                     db 'Allí no hay una oca! Elija otra posición: ',0
+    msgHaGanadoElZorro              db 'Ha ganado el Zorro!',0
+    msgHanGanadoLasOcas             db 'Han ganado las ocas!',0
+    msgEstadisticas                 db 'Cantidad de movimientos en la dirección <%s> = %li',10,0
+    msgIzq                          db 'Izquierda',0
+    msgDer                          db 'Derecha',0
+    msgArr                          db 'Arriba',0
+    msgAbj                          db 'Abajo',0
+    msgArrIzq                       db 'Arriba-Izquierda',0
+    msgArrDer                       db 'Arriba-Derecha',0
+    msgAbjIzq                       db 'Abajo-Izquierda',0
+    msgAbjDer                       db 'Abajo-Derecha',0
+    msgInterrupcionPartida          db 'Se ha interrumpido la partida!',0
 
 section .bss
-    orientacionTablero      resb 10
-    iconoZorro              resb 10
-    iconoOca                resb 10
-    movimientoZorro         resb 10
-    movimientoOca           resb 10
-    posicionOca             resb 10
+    eleccionPartida             resb 10
+    nombreArch                  resb 50
+    nombreArchNuevaPartida      resb 50
+    orientacionTablero          resb 10
+    inputIconoZorro             resb 10
+    inputIconoOca               resb 10
+    movimientoZorro             resb 10
+    movimientoOca               resb 10
+    posicionOca                 resb 10
     
-    filOca                  resb 1
-    colOca                  resb 1
+    filOca                      resb 1
+    colOca                      resb 1
+
+    fileHandler                 resq 1
+    fileHandlerNuevaPartida     resq 1
     
-    RESULTMOVZORRO          resb 1
-    RESULTMOVOCA            resb 1
-    RESULTORIENTACION       resb 1
+    RESULTELECCION              resb 1
+    RESULTMOVZORRO              resb 1
+    RESULTMOVOCA                resb 1
+    RESULTORIENTACION           resb 1
     
 section .text
 main:
+mostrarMensajeIntroduccion:
+;   aca deberíamos mostrar un mensaje de introducción al juego
 
+preguntarCargarPartidaExistente:
+    mPuts   msgCargarPartidaExistente
+    mGets   eleccionPartida
+
+    mInterrumpirOGuardarPartida byte[eleccionPartida]
+
+    sub     rsp,8
+    call    validarEleccion
+    add     rsp,8
+
+    cmp     byte[RESULTELECCION],'S'
+    jne     preguntarCargarPartidaExistente
+
+    cmp     byte[eleccionPartida],'s'
+    jne     nuevaPartida
+
+cargarPartidaExistente:
+pedirNombreArchivo:
+    mPuts   msgPedirNombreArch
+    mGets   nombreArch
+
+    mInterrumpirOGuardarPartida byte[nombreArch]
+
+    mFopen  nombreArch,modoAperturaArchLectura
+    cmp     rax,0
+    jle     errorAperturaArchivo
+    mov     [fileHandler],rax
+
+    mFread  dataPartida,128,1,qword[fileHandler]
+    cmp     rax,1
+    jl      errorLecturaArchivo
+
+    mFclose qword[fileHandler]
+    jmp     loopPrincipal
+
+errorAperturaArchivo:
+    mPuts   msgErrorAperturaArch
+    jmp     preguntarCargarPartidaExistente
+
+errorLecturaArchivo:
+    mFclose qword[fileHandler]
+    mPuts   msgErrorLecturaArch
+    jmp     preguntarCargarPartidaExistente
+
+nuevaPartida:
 pedirOrientacion:
     mov     rdi,msgElegirOrientacion
     mPrintf
     mGets   orientacionTablero
 
-    cmp     byte[orientacionTablero],'q'
-    je      interrupcionDePartida
+    mInterrumpirOGuardarPartida byte[orientacionTablero]
 
     sub     rsp,8
     call    validarOrientacion
@@ -141,18 +208,20 @@ pedirOrientacion:
 pedirIconoZorro:
     mov     rdi,msgElegirIconoZorro
     mPrintf
-    mGets   iconoZorro
+    mGets   inputIconoZorro
+    mov     al,byte[inputIconoZorro]
+    mov     [iconoZorro],al
 
-    cmp     byte[iconoZorro],'q'
-    je      interrupcionDePartida
+    mInterrumpirOGuardarPartida byte[inputIconoZorro]
 
 pedirIconoOca:
     mov     rdi,msgElegiriconoOca
     mPrintf
-    mGets   iconoOca
+    mGets   inputIconoOca
+    mov     al,byte[inputIconoOca]
+    mov     [iconoOca],al
 
-    cmp     byte[iconoOca],'q'
-    je      interrupcionDePartida
+    mInterrumpirOGuardarPartida byte[inputIconoOca]
 
     mov     rdi,tablero
     xor     rsi,rsi
@@ -202,8 +271,7 @@ pedirMovimientoZorro:
     mPuts   msgMovimientoZorro
     mGets   movimientoZorro
 
-    cmp     byte[movimientoZorro],'q'
-    je      interrupcionDePartida
+    mInterrumpirOGuardarPartida byte[movimientoZorro]
 
     sub     rsp,8
     call    validarMovimientoZorro
@@ -336,8 +404,7 @@ moverOcas:
     mPuts   msgPedirPosicionOca
     mGets   posicionOca
 
-    cmp     byte[posicionOca],'q'
-    je      interrupcionDePartida
+    mInterrumpirOGuardarPartida byte[posicionOca]
 
     mov     rdi,posicionOca
     mov     rsi,formatoPosicionOca
@@ -382,8 +449,7 @@ pedirMovimientoOca:
     mPuts   msgPedirMovimientoOca
     mGets   movimientoOca
 
-    cmp     byte[movimientoOca],'q'
-    je      interrupcionDePartida
+    mInterrumpirOGuardarPartida byte[movimientoOca]
 
     sub     rsp,8
     call    validarMovimientoOca
@@ -467,6 +533,33 @@ mostrarEstadisticas:
     mMostrarEstadisticas    msgAbjDer, qword[cantMovZorroAbjDer]
     jmp     fin
 
+guardarPartida:
+pedirNombreArchivoNuevaPartida:
+    mPuts   msgPedirNombreArchNuevaPartida
+    mGets   nombreArchNuevaPartida
+
+    ; acá deberíamos validar que el nombre cumple con cierto formato
+    ; (que la extensión es .dat y que len(nombre) >= 5)
+
+    mFopen  nombreArchNuevaPartida,modoAperturaArchLectura
+    cmp     rax,0
+    jle     crearNuevoArchivo
+    mov     [fileHandlerNuevaPartida],rax
+    mPuts   msgYaExiste
+    mFclose qword[fileHandlerNuevaPartida]
+    jmp     pedirNombreArchivoNuevaPartida
+
+crearNuevoArchivo:
+    mFopen  nombreArchNuevaPartida,modoAperturaArchEscritura
+;   cmp     rax,0
+;   jle     errorAperturaArchivoNuevaPartida
+    mov     [fileHandlerNuevaPartida],rax
+    mFwrite dataPartida,128,1,qword[fileHandlerNuevaPartida]
+;   cmp     rax,1
+;   jle     errorEscrituraArchivoNuevaPartida
+    mFclose qword[fileHandlerNuevaPartida]
+    jmp     fin
+
 interrupcionDePartida:
     mPuts   msgInterrupcionPartida
 
@@ -535,5 +628,19 @@ validarMovimientoOca:
     mov     byte[RESULTMOVOCA],'N'
 
 movimientoOcaValido:
+    ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+validarEleccion:
+    mov     byte[RESULTELECCION],'S'
+
+    cmp     byte[eleccionPartida],'s'
+    je      eleccionValida
+
+    cmp     byte[eleccionPartida],'n'
+    je      eleccionValida
+
+    mov     byte[RESULTELECCION],'N'
+
+eleccionValida:
     ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
