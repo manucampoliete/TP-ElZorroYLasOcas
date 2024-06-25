@@ -39,12 +39,11 @@ section .text
 ;     'I', sobreescribe la orientación por default, cargando el tablero rotado 90° a Izq
 ;     'D', sobreescribe la orientación por default, cargando el tablero rotado 90° a Der
 ;     'V', sobreescribe la orientación por default, cargando el tablero dado vuelta (rotado 180°)
-;rdx: dirección de la fila del zorro (campo de 64 bits)
-;rcx: dirección de la columna del zorro (campo de 64 bits)
-;r8: dirección del campo de 3 bytes con los movimientos posibles para la oca.
+;rdx: dirección del campo de 3 bytes con los movimientos posibles para la oca.
 ;   - primer byte: movimiento para un costado
 ;   - segundo byte: movimiento hacia adelante
 ;   - tercer byte: movimiento hacia el otro costado
+;rcx: dirección del desplazamiento del zorro (campo de 64 bits)
 cargarMatriz:
 
     cmp     sil,78 ; 78[10] = Ascii('N')
@@ -53,8 +52,7 @@ cargarMatriz:
     cmp     sil,73 ; ; 73[10] = Ascii('I')
     jne     verSiEsRotacionDerecha
     mov     qword[dirNuevoTablero],tableroRotadoIzq
-    mov     qword[rdx],4
-    mov     qword[rcx],5
+    mov     qword[rcx],25
     mov     qword[dirNuevosMovOcas],movimientosOca1
     jmp     efectuarCarga
 
@@ -62,8 +60,7 @@ verSiEsRotacionDerecha:
     cmp     sil,68 ; 68[10] = Ascii('D')
     jne     verSiEsRotacionCompleta
     mov     qword[dirNuevoTablero],tableroRotadoDer
-    mov     qword[rdx],4
-    mov     qword[rcx],3
+    mov     qword[rcx],23
     mov     qword[dirNuevosMovOcas],movimientosOca2
     jmp     efectuarCarga
 
@@ -71,8 +68,7 @@ verSiEsRotacionCompleta:
     cmp     sil,86 ; 86[10] = Ascii('V')
     jne     finCarga
     mov     qword[dirNuevoTablero],tableroDadoVuelta
-    mov     qword[rdx],3
-    mov     qword[rcx],4
+    mov     qword[rcx],17
     mov     qword[dirNuevosMovOcas],movimientosOca3
 
 efectuarCarga:
@@ -82,7 +78,7 @@ efectuarCarga:
 
 copiarMovimientosOca:
     mov     rsi,[dirNuevosMovOcas]
-    mov     rdi,r8
+    mov     rdi,rdx
     mov     rcx,3
     rep movsb
 
