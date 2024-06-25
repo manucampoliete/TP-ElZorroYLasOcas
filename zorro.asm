@@ -103,6 +103,7 @@ section .data
     msgArrDer               db 'Arriba-Derecha',0
     msgAbjIzq               db 'Abajo-Izquierda',0
     msgAbjDer               db 'Abajo-Derecha',0
+    msgInterrupcionPartida  db 'Se ha interrumpido la partida!',0
 
 section .bss
     orientacionTablero      resb 10
@@ -127,6 +128,9 @@ pedirOrientacion:
     mPrintf
     mGets   orientacionTablero
 
+    cmp     byte[orientacionTablero],'q'
+    je      interrupcionDePartida
+
     sub     rsp,8
     call    validarOrientacion
     add     rsp,8
@@ -139,10 +143,16 @@ pedirIconoZorro:
     mPrintf
     mGets   iconoZorro
 
+    cmp     byte[iconoZorro],'q'
+    je      interrupcionDePartida
+
 pedirIconoOca:
     mov     rdi,msgElegiriconoOca
     mPrintf
     mGets   iconoOca
+
+    cmp     byte[iconoOca],'q'
+    je      interrupcionDePartida
 
     mov     rdi,tablero
     xor     rsi,rsi
@@ -191,6 +201,9 @@ loopPrincipal:
 pedirMovimientoZorro:
     mPuts   msgMovimientoZorro
     mGets   movimientoZorro
+
+    cmp     byte[movimientoZorro],'q'
+    je      interrupcionDePartida
 
     sub     rsp,8
     call    validarMovimientoZorro
@@ -323,6 +336,9 @@ moverOcas:
     mPuts   msgPedirPosicionOca
     mGets   posicionOca
 
+    cmp     byte[posicionOca],'q'
+    je      interrupcionDePartida
+
     mov     rdi,posicionOca
     mov     rsi,formatoPosicionOca
     mov     rdx,filOca
@@ -365,6 +381,9 @@ moverOcas:
 pedirMovimientoOca:
     mPuts   msgPedirMovimientoOca
     mGets   movimientoOca
+
+    cmp     byte[movimientoOca],'q'
+    je      interrupcionDePartida
 
     sub     rsp,8
     call    validarMovimientoOca
@@ -446,6 +465,10 @@ mostrarEstadisticas:
     mMostrarEstadisticas    msgArrDer, qword[cantMovZorroArrDer]
     mMostrarEstadisticas    msgAbjIzq, qword[cantMovZorroAbjIzq]
     mMostrarEstadisticas    msgAbjDer, qword[cantMovZorroAbjDer]
+    jmp     fin
+
+interrupcionDePartida:
+    mPuts   msgInterrupcionPartida
 
 fin:
     ret
