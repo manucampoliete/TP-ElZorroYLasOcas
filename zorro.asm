@@ -88,20 +88,25 @@ section .data
     ES_TURNO_ZORRO          equ 1
     ES_TURNO_OCAS           equ 0
 
+    msgBienvenida                   db 'Bienvenido a El Zorro y las Ocas!',0
+    msgInstruccionesGuardarPartida  db 'Presione g en cualquier momento para guardar la partida actual',0
     msgCargarPartidaExistente       db '¿Quieres cargar una partida? [s/n]',0
     modoAperturaArchLectura         db 'rb',0
     modoAperturaArchEscritura       db 'wb',0
     msgPedirNombreArch              db 'Ingresar el nombre del archivo',0
     msgPedirNombreArchNuevaPartida  db '¿Qué nombre quiere ponerle a la partida?',0
+    msgPartidaGuardada              db 'Partida guardada!',0
     msgYaExiste                     db 'Ya existe una partida con ese nombre. Intente con otro',0
     msgErrorAperturaArch            db 'La partida buscada no existe, vuelva a intentarlo o inicie una nueva partida',0
     msgErrorLecturaArch             db 'Error al leer el archivo',0
+    msgTurnoZorro                   db 'Turno del zorro!',0
     msgMovimientoZorro              db 'Ingrese un movimiento para el zorro: ',0
     msgElegirOrientacion            db 'Elija una orientación para el tablero (N si no quiere rotar, I para',10
                                     db 'rotar a Izquierda, D para rotar a Derecha y V para dar vuelta): ',0
     msgElegirIconoZorro             db 'Elija un ícono para el zorro (X por default): ',0
     msgElegiriconoOca               db 'Elija un ícono para la oca (O por default): ',0
     comandoClear                    db 'clear',0
+    msgTurnoOcas                    db 'Turno de las ocas!',0
     msgPedirPosicionOca             db 'Ingrese fila (1 a 7) y columna (1 a 7) separados por un espacio: ',0
     formatoPosicionOca              db '%hhi %hhi',0
     msgPedirMovimientoOca           db 'Ingrese un movimiento para la oca: ',0
@@ -144,7 +149,8 @@ section .bss
 section .text
 main:
 mostrarMensajeIntroduccion:
-;   aca deberíamos mostrar un mensaje de introducción al juego
+    mPuts   msgBienvenida
+    mPuts   msgInstruccionesGuardarPartida
 
 preguntarCargarPartidaExistente:
     mPuts   msgCargarPartidaExistente
@@ -268,6 +274,7 @@ loopPrincipal:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; MOVER ZORRO ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 pedirMovimientoZorro:
+    mPuts   msgTurnoZorro
     mPuts   msgMovimientoZorro
     mGets   movimientoZorro
 
@@ -400,7 +407,7 @@ compararVacio:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; MOVER OCAS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 moverOcas:
-
+    mPuts   msgTurnoOcas
     mPuts   msgPedirPosicionOca
     mGets   posicionOca
 
@@ -558,6 +565,7 @@ crearNuevoArchivo:
 ;   cmp     rax,1
 ;   jle     errorEscrituraArchivoNuevaPartida
     mFclose qword[fileHandlerNuevaPartida]
+    mPuts   msgPartidaGuardada
     jmp     fin
 
 interrupcionDePartida:
