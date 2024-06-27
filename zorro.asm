@@ -260,14 +260,170 @@ loopPrincipal:
 
     cmp     byte[ocasComidas],OBJETIVO_OCAS
     je      ganoZorro
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+verZorroEncerrado:
+    mov     rbx,[desplazamientoZorro]   ;posicion del zorro
+    xor     rdx,rdx                     ; (rdx) = 0
+    mov     rax,rbx                     ; (rax) = desplazamiento del zorro en el tablero
+    mov     r15,LONGITUD_FILA
+    idiv    r15                         ; (rdx:rax) / op -> (rdx) = resto, (rax) = cociente
+    inc     rdx                         ; (rdx) = columna zorro = resto + 1
+    inc     rax                         ; (rax) = fila zorro = cociente + 1
 
-    ; sub     rsp,8
-    ; call    zorroPuedeMoverse
-    ; add     rsp,8
+izquierda:
+    cmp     rdx,COL_MIN
+    je      derecha
+     
+    cmp     byte[tablero + rbx - LONGITUD_ELEM],' '
+    je      continuarJuego
+    mov     al,[iconoOca]
+    cmp     byte[tablero + rbx - LONGITUD_ELEM],al
+    je      verificarColumnaIzq
+    jmp     derecha
 
-    ; cmp     rax,0
-    ; je      ganaronOcas
+verificarColumnaIzq:
+    cmp     rdx,SIG_COL_MIN
+    je      derecha
+    cmp     byte[tablero + rbx - LONGITUD_ELEM - LONGITUD_ELEM],' '
+    je      continuarJuego
 
+derecha:
+    cmp     rdx,COL_MAX
+    je      diagonalDerAbajo
+     
+    cmp     byte[tablero + rbx + LONGITUD_ELEM],' '
+    je      continuarJuego
+    mov     al,[iconoOca]
+    cmp     byte[tablero + rbx + LONGITUD_ELEM],al
+    je      verificarColumnaDer
+    jmp     diagonalDerAbajo
+
+verificarColumnaDer:
+    cmp     rdx,SIG_COL_MAX
+    je      diagonalDerAbajo
+    cmp     byte[tablero + rbx + LONGITUD_ELEM + LONGITUD_ELEM],' '
+    je      continuarJuego
+
+diagonalDerAbajo:
+    cmp     rdx,COL_MAX
+    je      abajo
+    cmp     rax,FIL_MAX
+    je      abajo
+     
+    cmp     byte[tablero + rbx + LONGITUD_ELEM + LONGITUD_FILA],' '
+    je      continuarJuego
+    mov     al,[iconoOca]
+    cmp     byte[tablero + rbx + LONGITUD_ELEM + LONGITUD_FILA],al
+    je      verificarFilaColumnaDiagonalDerAbajo
+    jmp     abajo
+
+verificarFilaColumnaDiagonalDerAbajo:
+    cmp     rdx,SIG_COL_MAX
+    je      abajo
+    cmp     rax,SIG_FIL_MAX
+    je      abajo
+    cmp     byte[tablero + rbx + LONGITUD_ELEM + LONGITUD_FILA + LONGITUD_ELEM + LONGITUD_FILA],' '
+    je      continuarJuego
+
+abajo:
+    cmp     rax,FIL_MAX  
+    je      diagonalIzqAbajo
+     
+    cmp     byte[tablero + rbx + LONGITUD_FILA],' '
+    je      continuarJuego
+    mov     al,[iconoOca]
+    cmp     byte[tablero + rbx + LONGITUD_FILA],al
+    je      verificarFilaAbajo
+    jmp     diagonalIzqAbajo
+
+verificarFilaAbajo:
+    cmp     rax,SIG_FIL_MAX
+    je      diagonalIzqAbajo
+    cmp     byte[tablero + rbx + LONGITUD_FILA + LONGITUD_FILA],' '
+    je      continuarJuego
+
+diagonalIzqAbajo:
+    cmp     rdx,COL_MIN  
+    je      diagonalIzqArriba
+    cmp     rax,FIL_MAX  
+    je      diagonalIzqArriba
+     
+    cmp     byte[tablero + rbx + LONGITUD_FILA - LONGITUD_ELEM],' '
+    je      continuarJuego
+    mov     al,[iconoOca]
+    cmp     byte[tablero + rbx + LONGITUD_FILA - LONGITUD_ELEM],al
+    je      verificarFilaColumnaDiagonalIzqAbajo
+    jmp     diagonalIzqArriba
+
+verificarFilaColumnaDiagonalIzqAbajo:
+    cmp     rdx,SIG_COL_MIN
+    je      diagonalIzqArriba
+    cmp     rax,SIG_FIL_MAX
+    je      diagonalIzqArriba
+    cmp     byte[tablero + rbx + LONGITUD_FILA - LONGITUD_ELEM + LONGITUD_FILA - LONGITUD_ELEM],' '
+    je      continuarJuego
+    
+diagonalIzqArriba:
+    cmp     rdx,COL_MIN  
+    je      arriba
+    cmp     rax,FIL_MIN 
+    je      arriba
+     
+    cmp     byte[tablero + rbx - LONGITUD_FILA - LONGITUD_ELEM],' '
+    je      continuarJuego
+    mov     al,[iconoOca]
+    cmp     byte[tablero + rbx - LONGITUD_FILA - LONGITUD_ELEM],al
+    je      verificarFilaColumnaDiagonalIzqArriba
+    jmp     arriba
+
+verificarFilaColumnaDiagonalIzqArriba:
+    cmp     rdx,SIG_COL_MIN
+    je      arriba
+    cmp     rax,SIG_FIL_MIN
+    je      arriba
+    cmp     byte[tablero + rbx - LONGITUD_FILA - LONGITUD_ELEM - LONGITUD_FILA - LONGITUD_ELEM],' '
+    je      continuarJuego
+
+arriba:
+    cmp     rax,FIL_MIN 
+    je      diagonalDerArriba
+     
+    cmp     byte[tablero + rbx - LONGITUD_FILA],' '
+    je      continuarJuego
+    mov     al,[iconoOca]
+    cmp     byte[tablero + rbx - LONGITUD_FILA],al
+    je      verificarFilaArriba
+    jmp     diagonalDerArriba
+
+verificarFilaArriba:
+    cmp     rax,SIG_FIL_MIN
+    je      diagonalDerArriba
+    cmp     byte[tablero + rbx - LONGITUD_FILA - LONGITUD_FILA],' '
+    je      continuarJuego
+
+diagonalDerArriba:
+    cmp     rdx,COL_MAX
+    je      ganaronOcas
+    cmp     rax,FIL_MIN 
+    je      ganaronOcas
+     
+    cmp     byte[tablero + rbx - LONGITUD_FILA + LONGITUD_ELEM],' '
+    je      continuarJuego
+    mov     al,[iconoOca]
+    cmp     byte[tablero + rbx - LONGITUD_FILA + LONGITUD_ELEM],al
+    je      verificarFilaColumnaDiagonalDerArriba
+    jmp     ganaronOcas
+
+verificarFilaColumnaDiagonalDerArriba:
+    cmp     rdx,SIG_COL_MAX
+    je      ganaronOcas
+    cmp     rax,SIG_FIL_MIN
+    je      ganaronOcas
+    cmp     byte[tablero + rbx - LONGITUD_FILA + LONGITUD_ELEM - LONGITUD_FILA + LONGITUD_ELEM ],' '
+    jne     ganaronOcas
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+continuarJuego:
     cmp     byte[turnoZorro],ES_TURNO_ZORRO
     je      pedirMovimientoZorro
 
@@ -439,38 +595,36 @@ moverOcas:
     mov     al,byte[tablero + rbx]
     cmp     al,[iconoOca]
     je      verSiOcaPuedeMoverse
-    ;je      pedirMovimientoOca
 
     mPuts   msgNoHayOca
     jmp     moverOcas
 
 verSiOcaPuedeMoverse:
-    ; sub     rsp,8
-    ; call    ocaPuedeMoverse
-    ; add     rsp,8
-
-    ; cmp     rax,1
-    ; je      pedirMovimientoOca
-
-    sub     rbx,LONGITUD_ELEM       ;se indica la posicon a la izquierda de la oca
-    cmp     byte[tablero + rbx],' '
+verSiOcaPuedeMoverseIzq:
+    cmp     byte[movOcaAdelante],'D'
+    je      verSiOcaPuedeMoverseDer	
+    cmp     byte[tablero + rbx + DESPLAZ_IZQ],' '
     je      pedirMovimientoOca
 
-    add     rbx,LONGITUD_ELEM
-    add     rbx,LONGITUD_ELEM       ;se indica la posicion a la derecha de la oca
-    cmp     byte[tablero + rbx],' '
+verSiOcaPuedeMoverseDer:
+    cmp     byte[movOcaAdelante],'I'
+    je      verSiOcaPuedeMoverseArr
+    cmp     byte[tablero + rbx + DESPLAZ_DER],' '
     je      pedirMovimientoOca
 
-    sub     rbx,LONGITUD_ELEM
-    add     rbx,LONGITUD_FILA       ;se indica la posicion arriba de la oca
-    cmp     byte[tablero + rbx],' '
+verSiOcaPuedeMoverseArr:
+    cmp     byte[movOcaAdelante],'S'
+    je      verSiOcaPuedeMoverseAbj
+    cmp     byte[tablero + rbx + DESPLAZ_ARR],' '
     je      pedirMovimientoOca
 
-    sub     rbx,LONGITUD_FILA
-    sub     rbx,LONGITUD_FILA       ;se indica la posicion abajo de la oca
-    cmp     byte[tablero + rbx],' '
+verSiOcaPuedeMoverseAbj:
+    cmp     byte[movOcaAdelante],'W'
+    je      ocaNoPuedeMoverse
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ],' '
     je      pedirMovimientoOca
 
+ocaNoPuedeMoverse:
     mPuts   msgOcaNoPuedeMoverse
     jmp     moverOcas
 
@@ -678,152 +832,3 @@ eleccionValida:
 
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-verZorroEncerrado:
-;Chequea si el zorro esta encerrado y ganaron las ocas
-    mov     rbx,[desplazamientoZorro] ;posicion del zorro
-    xor     rdx,rdx                 ; (rdx) = 0
-    mov     rax,rbx                 ; (rax) = desplazamiento del zorro en el tablero
-    mov     r15,LONGITUD_FILA
-    idiv    r15                     ; (rdx:rax) / op -> (rdx) = resto, (rax) = cociente
-    inc     rdx                     ; (rdx) = columna zorro = resto + 1
-    inc     rax                     ; (rax) = fila zorro = cociente + 1
-
-    
-
-
- izquierda:   ;Chequeo izquierda
-    cmp    rdx,COL_MIN  ;si no hay izquierda en ultima columna salto a derecha
-    je     derecha
-     
-
-    dec rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    ;Chequeo izq izq
-    dec rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    inc rbx
-
-
-derecha:    ;Chequeo derecha
-   
-    cmp rdx,COL_MAX    ;si no hay derecha en ultima columna salto a abajo
-    je abajo
-    
-
-    inc rbx
-    inc rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    
-    ;Chequeo der der
-    cmp rdx,COL_MAX-1 ; no hay dos derecha
-    je diagonalDerAbajo
-    inc rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    dec rbx
-
-diagonalDerAbajo:    ;chequeo diagonal derecha abajo
-    
-    cmp rax,FIL_MAX ;si no hay abajo en ultima fila salto a diagonal izquierda arriba
-    je diagonalIzqArriba
-
-    add rbx,[LONGITUD_FILA]
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    ;chequeo diagonal derecha abajo diagonal derecha abajo
-    cmp rdx,COL_MAX-1 ; no hay dos derecha abajo diagonal
-    je abajo
-
-    add rbx,[LONGITUD_FILA]
-    inc rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    dec rbx
-    sub rbx,[LONGITUD_FILA]
-
-abajo:    ;chequeo abajo
-    cmp rax,FIL_MAX ;si no hay abajo en ultima fila salto a diagonal izquierda arriba
-    je diagonalIzqArriba
-    dec rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    ;chequeo abajo abajo
-    cmp rax,FIL_MAX-1 ; no hay dos abajo
-    je diagonalIzqAbajo
-
-    add rbx,[LONGITUD_FILA]
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    sub rbx,[LONGITUD_FILA]
-
-diagonalIzqAbajo:    ;chequeo diagonal izquierda abajo
-
-    cmp rdx,COL_MIN ;si no hay izquierda salto a arriba
-    je arriba
-
-    dec rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro    
-    ;chequeo diagonal izquierda abajo diagonal izquierda abajo
-    cmp rax,FIL_MAX-1 ; no hay dos abajo
-    je diagonalIzqArriba 
-
-    add rbx,[LONGITUD_FILA]
-    dec rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    inc rbx
-    sub rbx,[LONGITUD_FILA]
-    
-diagonalIzqArriba:    ;chequeo diagonal izquierda arriba
-    cmp rax,FIL_MIN ;si esta en la primera fila termina
-    jmp ganaronOcas
-
-
-    sub rbx,[LONGITUD_FILA]
-    sub rbx,[LONGITUD_FILA]
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    ;chequeo diagonal izquierda arriba diagonal izquierda arriba
-    cmp rax,FIL_MIN+1 ; no hay dos arriba
-    je arriba
-
-    sub rbx,[LONGITUD_FILA]
-    dec rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    inc rbx
-    add rbx,[LONGITUD_FILA]
-
-arriba:    ;chequeo arriba 
-    inc rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    ;chequeo arriba arriba
-
-    cmp rax,FIL_MAX-1 ; no hay dos arriba
-    je diagonalDerArriba
-
-    sub rbx,[LONGITUD_FILA]
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    add rbx,[LONGITUD_FILA]
-
- diagonalDerArriba:   ;chequeo diagonal derecha arriba
-    inc rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-    ;chequeo diagonal derecha arriba diagonal derecha arriba
-    cmp rax,FIL_MAX-1 ; no hay dos abajo
-    je ganaronOcas
-    sub rbx,[LONGITUD_FILA]
-    inc rbx
-    cmp byte[tablero + rbx],' '
-    je pedirMovimientoZorro
-
-    jmp ganaronOcas
-    
-
