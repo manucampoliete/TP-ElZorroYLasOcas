@@ -111,6 +111,7 @@ section .data
     formatoPosicionOca              db '%hhi %hhi',0
     msgPedirMovimientoOca           db 'Ingrese un movimiento para la oca: ',0
     msgNoHayOca                     db 'Allí no hay una oca! Elija otra posición: ',0
+    msgOcaNoPuedeMoverse            db 'La oca elegida no puede moverse hacia ningun lado! Elija otra oca.',0
     msgHaGanadoElZorro              db 'Ha ganado el Zorro!',0
     msgHanGanadoLasOcas             db 'Han ganado las ocas!',0
     msgEstadisticas                 db 'Cantidad de movimientos en la dirección <%s> = %li',10,0
@@ -134,6 +135,7 @@ section .bss
     movimientoZorro             resb 10
     movimientoOca               resb 10
     posicionOca                 resb 10
+    posMovimientoOca            resq 1
     
     filOca                      resb 1
     colOca                      resb 1
@@ -433,24 +435,44 @@ moverOcas:
     add     rsp,8
 
     mov     rbx,rax
+    mov     [posMovimientoOca],rax
     mov     al,byte[tablero + rbx]
     cmp     al,[iconoOca]
-    ; je      verSiOcaPuedeMoverse
-    je      pedirMovimientoOca
+    je      verSiOcaPuedeMoverse
+    ;je      pedirMovimientoOca
 
     mPuts   msgNoHayOca
     jmp     moverOcas
 
-; verSiOcaPuedeMoverse:
-;     sub     rsp,8
-;     call    ocaPuedeMoverse
-;     add     rsp,8
+verSiOcaPuedeMoverse:
+    ; sub     rsp,8
+    ; call    ocaPuedeMoverse
+    ; add     rsp,8
 
-;     cmp     rax,1
-;     je      pedirMovimientoOca
+    ; cmp     rax,1
+    ; je      pedirMovimientoOca
 
-;     mPuts   msgOcaNoPuedeMoverse
-;     jmp     moverOca
+    sub     rbx,LONGITUD_ELEM       ;se indica la posicon a la izquierda de la oca
+    cmp     byte[tablero + rbx],' '
+    je      pedirMovimientoOca
+
+    add     rbx,LONGITUD_ELEM
+    add     rbx,LONGITUD_ELEM       ;se indica la posicion a la derecha de la oca
+    cmp     byte[tablero + rbx],' '
+    je      pedirMovimientoOca
+
+    sub     rbx,LONGITUD_ELEM
+    add     rbx,LONGITUD_FILA       ;se indica la posicion arriba de la oca
+    cmp     byte[tablero + rbx],' '
+    je      pedirMovimientoOca
+
+    sub     rbx,LONGITUD_FILA
+    sub     rbx,LONGITUD_FILA       ;se indica la posicion abajo de la oca
+    cmp     byte[tablero + rbx],' '
+    je      pedirMovimientoOca
+
+    mPuts   msgOcaNoPuedeMoverse
+    jmp     moverOcas
 
 pedirMovimientoOca:
     mPuts   msgPedirMovimientoOca
@@ -465,16 +487,17 @@ pedirMovimientoOca:
     cmp     byte[RESULTMOVOCA],'S'
     jne     pedirMovimientoOca
 
+    mov     rbx,qword[posMovimientoOca]
     cmp     byte[movimientoOca],'A'
     jne     moverOcaDer
     cmp     byte[colOca],COL_MIN
     je      pedirMovimientoOca
-    dec     rbx
+    sub     rbx,LONGITUD_ELEM
     cmp     byte[tablero + rbx],' '
     jne     pedirMovimientoOca
     mov     al,[iconoOca]
     mov     [tablero + rbx],al
-    inc     rbx
+    add     rbx,LONGITUD_ELEM
     mov     byte[tablero + rbx],' '
     jmp     esTurnoZorro
 
@@ -483,12 +506,12 @@ moverOcaDer:
     jne     moverOcaArr
     cmp     byte[colOca],COL_MAX
     je      pedirMovimientoOca
-    inc     rbx
+    add     rbx,LONGITUD_ELEM
     cmp     byte[tablero + rbx],' '
     jne     pedirMovimientoOca
     mov     al,[iconoOca]
     mov     [tablero + rbx],al
-    dec     rbx
+    sub     rbx,LONGITUD_ELEM
     mov     byte[tablero + rbx],' '
     jmp     esTurnoZorro
 
