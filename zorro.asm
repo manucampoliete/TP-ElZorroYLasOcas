@@ -674,4 +674,156 @@ validarEleccion:
 
 eleccionValida:
     ret
+
+
+    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+verZorroEncerrado:
+;Chequea si el zorro esta encerrado y ganaron las ocas
+    mov     rbx,[desplazamientoZorro] ;posicion del zorro
+    xor     rdx,rdx                 ; (rdx) = 0
+    mov     rax,rbx                 ; (rax) = desplazamiento del zorro en el tablero
+    mov     r15,LONGITUD_FILA
+    idiv    r15                     ; (rdx:rax) / op -> (rdx) = resto, (rax) = cociente
+    inc     rdx                     ; (rdx) = columna zorro = resto + 1
+    inc     rax                     ; (rax) = fila zorro = cociente + 1
+
+    
+
+
+ izquierda:   ;Chequeo izquierda
+    cmp    rdx,COL_MIN  ;si no hay izquierda en ultima columna salto a derecha
+    je     derecha
+     
+
+    dec rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    ;Chequeo izq izq
+    dec rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    inc rbx
+
+
+derecha:    ;Chequeo derecha
+   
+    cmp rdx,COL_MAX    ;si no hay derecha en ultima columna salto a abajo
+    je abajo
+    
+
+    inc rbx
+    inc rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    
+    ;Chequeo der der
+    cmp rdx,COL_MAX-1 ; no hay dos derecha
+    je diagonalDerAbajo
+    inc rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    dec rbx
+
+diagonalDerAbajo:    ;chequeo diagonal derecha abajo
+    
+    cmp rax,FIL_MAX ;si no hay abajo en ultima fila salto a diagonal izquierda arriba
+    je diagonalIzqArriba
+
+    add rbx,[LONGITUD_FILA]
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    ;chequeo diagonal derecha abajo diagonal derecha abajo
+    cmp rdx,COL_MAX-1 ; no hay dos derecha abajo diagonal
+    je abajo
+
+    add rbx,[LONGITUD_FILA]
+    inc rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    dec rbx
+    sub rbx,[LONGITUD_FILA]
+
+abajo:    ;chequeo abajo
+    cmp rax,FIL_MAX ;si no hay abajo en ultima fila salto a diagonal izquierda arriba
+    je diagonalIzqArriba
+    dec rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    ;chequeo abajo abajo
+    cmp rax,FIL_MAX-1 ; no hay dos abajo
+    je diagonalIzqAbajo
+
+    add rbx,[LONGITUD_FILA]
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    sub rbx,[LONGITUD_FILA]
+
+diagonalIzqAbajo:    ;chequeo diagonal izquierda abajo
+
+    cmp rdx,COL_MIN ;si no hay izquierda salto a arriba
+    je arriba
+
+    dec rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro    
+    ;chequeo diagonal izquierda abajo diagonal izquierda abajo
+    cmp rax,FIL_MAX-1 ; no hay dos abajo
+    je diagonalIzqArriba 
+
+    add rbx,[LONGITUD_FILA]
+    dec rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    inc rbx
+    sub rbx,[LONGITUD_FILA]
+    
+diagonalIzqArriba:    ;chequeo diagonal izquierda arriba
+    cmp rax,FIL_MIN ;si esta en la primera fila termina
+    jmp ganaronOcas
+
+
+    sub rbx,[LONGITUD_FILA]
+    sub rbx,[LONGITUD_FILA]
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    ;chequeo diagonal izquierda arriba diagonal izquierda arriba
+    cmp rax,FIL_MIN+1 ; no hay dos arriba
+    je arriba
+
+    sub rbx,[LONGITUD_FILA]
+    dec rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    inc rbx
+    add rbx,[LONGITUD_FILA]
+
+arriba:    ;chequeo arriba 
+    inc rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    ;chequeo arriba arriba
+
+    cmp rax,FIL_MAX-1 ; no hay dos arriba
+    je diagonalDerArriba
+
+    sub rbx,[LONGITUD_FILA]
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    add rbx,[LONGITUD_FILA]
+
+ diagonalDerArriba:   ;chequeo diagonal derecha arriba
+    inc rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+    ;chequeo diagonal derecha arriba diagonal derecha arriba
+    cmp rax,FIL_MAX-1 ; no hay dos abajo
+    je ganaronOcas
+    sub rbx,[LONGITUD_FILA]
+    inc rbx
+    cmp byte[tablero + rbx],' '
+    je pedirMovimientoZorro
+
+    jmp ganaronOcas
+    
+
