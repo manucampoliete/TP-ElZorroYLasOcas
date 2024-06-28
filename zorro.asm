@@ -94,7 +94,7 @@ section .data
     modoAperturaArchLectura         db 'rb',0
     modoAperturaArchEscritura       db 'wb',0
     msgPedirNombreArch              db 'Ingresar el nombre del archivo',0
-    msgPedirNombreArchNuevaPartida  db '¿Qué nombre quiere ponerle a la partida?',0
+    msgPedirNombreArchNuevaPartida  db '¿Qué nombre quiere ponerle a la partida? [presione "c" para cancelar]',0
     msgPartidaGuardada              db 'Partida guardada!',0
     msgYaExiste                     db 'Ya existe una partida con ese nombre. Intente con otro',0
     msgErrorAperturaArch            db 'La partida buscada no existe, vuelva a intentarlo o inicie una nueva partida',0
@@ -158,7 +158,7 @@ preguntarCargarPartidaExistente:
     mPuts   msgCargarPartidaExistente
     mGets   eleccionPartida
 
-    mInterrumpirOGuardarPartida byte[eleccionPartida]
+    ;mInterrumpirOGuardarPartida byte[eleccionPartida]
 
     sub     rsp,8
     call    validarEleccion
@@ -175,7 +175,7 @@ pedirNombreArchivo:
     mPuts   msgPedirNombreArch
     mGets   nombreArch
 
-    mInterrumpirOGuardarPartida byte[nombreArch]
+    ;mInterrumpirOGuardarPartida byte[nombreArch]
 
     mFopen  nombreArch,modoAperturaArchLectura
     cmp     rax,0
@@ -204,7 +204,7 @@ pedirOrientacion:
     mPrintf
     mGets   orientacionTablero
 
-    mInterrumpirOGuardarPartida byte[orientacionTablero]
+    ;mInterrumpirOGuardarPartida byte[orientacionTablero]
 
     sub     rsp,8
     call    validarOrientacion
@@ -220,7 +220,7 @@ pedirIconoZorro:
     mov     al,byte[inputIconoZorro]
     mov     [iconoZorro],al
 
-    mInterrumpirOGuardarPartida byte[inputIconoZorro]
+    ;mInterrumpirOGuardarPartida byte[inputIconoZorro]
 
 pedirIconoOca:
     mov     rdi,msgElegiriconoOca
@@ -229,7 +229,7 @@ pedirIconoOca:
     mov     al,byte[inputIconoOca]
     mov     [iconoOca],al
 
-    mInterrumpirOGuardarPartida byte[inputIconoOca]
+    ;mInterrumpirOGuardarPartida byte[inputIconoOca]
 
     mov     rdi,tablero
     xor     rsi,rsi
@@ -721,6 +721,9 @@ guardarPartida:
 pedirNombreArchivoNuevaPartida:
     mPuts   msgPedirNombreArchNuevaPartida
     mGets   nombreArchNuevaPartida
+    
+    cmp    byte[nombreArchNuevaPartida],'c'
+    jmp loopPrincipal
 
     ; acá deberíamos validar que el nombre cumple con cierto formato
     ; (que la extensión es .dat y que len(nombre) >= 5)
