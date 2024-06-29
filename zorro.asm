@@ -4,6 +4,7 @@ extern cargarMatriz
 extern reemplazarIconos
 extern imprimirTablero
 extern calcularDesplazamiento
+extern strlen
 
 %include 'macros.asm'
 
@@ -29,10 +30,17 @@ extern calcularDesplazamiento
     mPrintf
 %endmacro
 
-%macro mInterrumpirOGuardarPartida 1
+%macro mImprimirPrompt 0
+    mov     rdi,prompt
+    mPrintf
+%endmacro
+
+%macro mInterrumpirPartida 1
     cmp     %1,'q'
     je      interrupcionDePartida
+%endmacro
 
+%macro mGuardarPartida 1
     cmp     %1,'g'
     je      guardarPartida
 %endmacro
@@ -67,14 +75,14 @@ section .data
 ;   Constantes
     LONGITUD_ELEM           equ 1
     LONGITUD_FILA           equ 7
-    DESPLAZ_IZQ             equ -1      ; = -LONGITUD_ELEM
-    DESPLAZ_DER             equ 1       ; = +LONGITUD_ELEM
-    DESPLAZ_ARR             equ -7      ; = -LONGITUD_FILA
-    DESPLAZ_ABJ             equ 7       ; = +LONGITUD_FILA
-    DESPLAZ_ARR_IZQ         equ -8      ; = -LONGITUD_FILA - LONGITUD_ELEM
-    DESPLAZ_ARR_DER         equ -6      ; = -LONGITUD_FILA + LONGITUD_ELEM
-    DESPLAZ_ABJ_IZQ         equ 6       ; = +LONGITUD_FILA - LONGITUD_ELEM
-    DESPLAZ_ABJ_DER         equ 8       ; = +LONGITUD_FILA + LONGITUD_ELEM
+    DESPLAZ_IZQ             equ -LONGITUD_ELEM
+    DESPLAZ_DER             equ LONGITUD_ELEM
+    DESPLAZ_ARR             equ -LONGITUD_FILA
+    DESPLAZ_ABJ             equ LONGITUD_FILA
+    DESPLAZ_ARR_IZQ         equ -LONGITUD_FILA - LONGITUD_ELEM
+    DESPLAZ_ARR_DER         equ -LONGITUD_FILA + LONGITUD_ELEM
+    DESPLAZ_ABJ_IZQ         equ LONGITUD_FILA - LONGITUD_ELEM
+    DESPLAZ_ABJ_DER         equ LONGITUD_FILA + LONGITUD_ELEM
     COL_MIN                 equ 1
     FIL_MIN                 equ 1
     COL_MAX                 equ 7
@@ -88,42 +96,48 @@ section .data
     ES_TURNO_ZORRO          equ 1
     ES_TURNO_OCAS           equ 0
 
-    msgBienvenida                   db 'Bienvenido a El Zorro y las Ocas!',0
-    msgInstruccionesGuardarPartida  db 'Presione g en cualquier momento para guardar la partida actual',0
-    msgCargarPartidaExistente       db '¿Quieres cargar una partida? [s/n]',0
-    modoAperturaArchLectura         db 'rb',0
-    modoAperturaArchEscritura       db 'wb',0
-    msgPedirNombreArch              db 'Ingresar el nombre del archivo',0
-    msgPedirNombreArchNuevaPartida  db '¿Qué nombre quiere ponerle a la partida? [presione "c" para cancelar]',0
-    msgPartidaGuardada              db 'Partida guardada!',0
-    msgYaExiste                     db 'Ya existe una partida con ese nombre. Intente con otro',0
-    msgErrorAperturaArch            db 'La partida buscada no existe, vuelva a intentarlo o inicie una nueva partida',0
-    msgErrorLecturaArch             db 'Error al leer el archivo',0
-    msgTurnoZorro                   db 'Turno del zorro!',0
-    msgMovimientoZorro              db 'Ingrese un movimiento para el zorro: ',0
-    msgElegirOrientacion            db 'Elija una orientación para el tablero (N si no quiere rotar, I para',10
-                                    db 'rotar a Izquierda, D para rotar a Derecha y V para dar vuelta): ',0
-    msgElegirIconoZorro             db 'Elija un ícono para el zorro (X por default): ',0
-    msgElegiriconoOca               db 'Elija un ícono para la oca (O por default): ',0
-    comandoClear                    db 'clear',0
-    msgTurnoOcas                    db 'Turno de las ocas!',0
-    msgPedirPosicionOca             db 'Ingrese fila (1 a 7) y columna (1 a 7) separados por un espacio: ',0
-    formatoPosicionOca              db '%hhi %hhi',0
-    msgPedirMovimientoOca           db 'Ingrese un movimiento para la oca: ',0
-    msgNoHayOca                     db 'Allí no hay una oca! Elija otra posición: ',0
-    msgOcaNoPuedeMoverse            db 'La oca elegida no puede moverse hacia ningun lado! Elija otra oca.',0
-    msgHaGanadoElZorro              db 'Ha ganado el Zorro!',0
-    msgHanGanadoLasOcas             db 'Han ganado las ocas!',0
-    msgEstadisticas                 db 'Cantidad de movimientos en la dirección <%s> = %li',10,0
-    msgIzq                          db 'Izquierda',0
-    msgDer                          db 'Derecha',0
-    msgArr                          db 'Arriba',0
-    msgAbj                          db 'Abajo',0
-    msgArrIzq                       db 'Arriba-Izquierda',0
-    msgArrDer                       db 'Arriba-Derecha',0
-    msgAbjIzq                       db 'Abajo-Izquierda',0
-    msgAbjDer                       db 'Abajo-Derecha',0
-    msgInterrupcionPartida          db 'Se ha interrumpido la partida!',0
+    prompt                      db '>>> ',0
+    msgBienvenida               db '¡Bienvenido a El Zorro y las Ocas!',0
+    msgComandosDisponibles      db 'Ingrese g en cualquier momento para guardar la partida actual',10
+                                db 'Ingrese q en cualquier momento para salir del juego',0
+    msgCargarPartidaExistente   db '¿Quieres cargar una partida? [s/n]',0
+    modoAperturaArchLectura     db 'rb',0
+    modoAperturaArchEscritura   db 'wb',0
+    msgPedirNombreArch          db 'Ingresar el nombre del archivo',0
+    msgPedirNombreNuevaPartida  db '¿Qué nombre quiere ponerle a la partida? (debe ser un archivo .dat)',0
+    msgNombreArchInvalido       db '¡La extensión es incorrecta o el nombre es muy corto!',10
+                                db 'Pruebe con <nombre_partida>.dat',0
+    msgPartidaGuardada          db '¡Partida guardada!',0
+    msgYaExiste                 db 'Ya existe una partida con ese nombre. Intente con otro',0
+    msgErrorAperturaArch        db 'La partida buscada no existe, vuelva a intentarlo o inicie una nueva partida',0
+    msgErrorLecturaArch         db 'Error al leer el archivo',0
+    msgTurnoZorro               db '¡Turno del zorro!',0
+    msgMovimientoZorro          db 'Ingrese un movimiento para el zorro',0
+    msgElegirOrientacion        db 'Elija una orientación para el tablero (sin rotar por default sin ingresar nada)',10
+                                db '    - I para rotar a Izquierda',10
+                                db '    - D para rotar a Derecha',10
+                                db '    - V para dar vuelta',0
+    msgElegirIconoZorro         db 'Elija un ícono para el zorro (X por default sin ingresar nada)',0
+    msgElegiriconoOca           db 'Elija un ícono para la oca (O por default sin ingresar nada)',0
+    comandoClear                db 'clear',0
+    msgTurnoOcas                db '¡Turno de las ocas!',0
+    msgPedirPosicionOca         db 'Ingrese fila (1 a 7) y columna (1 a 7) separados por un espacio',0
+    formatoPosicionOca          db '%hhi %hhi',0
+    msgPedirMovimientoOca       db 'Ingrese un movimiento para la oca',0
+    msgNoHayOca                 db '¡Allí no hay una oca! Elija otra posición',0
+    msgOcaNoPuedeMoverse        db '¡La oca elegida no puede moverse hacia ningún lado! Elija otra oca',0
+    msgHaGanadoElZorro          db '¡Ha ganado el Zorro! Se han comido efectivamente las 12 ocas',0
+    msgHanGanadoLasOcas         db '¡Han ganado las ocas! El zorro está completamente acorralado',0
+    msgEstadisticas             db 'Cantidad de movimientos en la dirección <%s> = %li',10,0
+    msgIzq                      db 'Izquierda',0
+    msgDer                      db 'Derecha',0
+    msgArr                      db 'Arriba',0
+    msgAbj                      db 'Abajo',0
+    msgArrIzq                   db 'Arriba-Izquierda',0
+    msgArrDer                   db 'Arriba-Derecha',0
+    msgAbjIzq                   db 'Abajo-Izquierda',0
+    msgAbjDer                   db 'Abajo-Derecha',0
+    msgInterrupcionPartida      db '¡Se ha interrumpido la partida!',0
 
 section .bss
     eleccionPartida             resb 10
@@ -135,7 +149,6 @@ section .bss
     movimientoZorro             resb 10
     movimientoOca               resb 10
     posicionOca                 resb 10
-    posMovimientoOca            resq 1
     
     filOca                      resb 1
     colOca                      resb 1
@@ -147,18 +160,20 @@ section .bss
     RESULTMOVZORRO              resb 1
     RESULTMOVOCA                resb 1
     RESULTORIENTACION           resb 1
+    RESULTNOMBREARCH            resb 1
     
 section .text
 main:
 mostrarMensajeIntroduccion:
     mPuts   msgBienvenida
-    mPuts   msgInstruccionesGuardarPartida
+    mPuts   msgComandosDisponibles
 
 preguntarCargarPartidaExistente:
     mPuts   msgCargarPartidaExistente
+    mImprimirPrompt
     mGets   eleccionPartida
 
-    ;mInterrumpirOGuardarPartida byte[eleccionPartida]
+    mInterrumpirPartida byte[eleccionPartida]
 
     sub     rsp,8
     call    validarEleccion
@@ -173,9 +188,10 @@ preguntarCargarPartidaExistente:
 cargarPartidaExistente:
 pedirNombreArchivo:
     mPuts   msgPedirNombreArch
+    mImprimirPrompt
     mGets   nombreArch
 
-    ;mInterrumpirOGuardarPartida byte[nombreArch]
+    mInterrumpirPartida byte[nombreArch]
 
     mFopen  nombreArch,modoAperturaArchLectura
     cmp     rax,0
@@ -200,11 +216,11 @@ errorLecturaArchivo:
 
 nuevaPartida:
 pedirOrientacion:
-    mov     rdi,msgElegirOrientacion
-    mPrintf
+    mPuts   msgElegirOrientacion
+    mImprimirPrompt
     mGets   orientacionTablero
 
-    ;mInterrumpirOGuardarPartida byte[orientacionTablero]
+    mInterrumpirPartida byte[orientacionTablero]
 
     sub     rsp,8
     call    validarOrientacion
@@ -214,23 +230,26 @@ pedirOrientacion:
     jne     pedirOrientacion
 
 pedirIconoZorro:
-    mov     rdi,msgElegirIconoZorro
-    mPrintf
+    mPuts   msgElegirIconoZorro
+    mImprimirPrompt
     mGets   inputIconoZorro
+    mInterrumpirPartida byte[inputIconoZorro]
+    cmp     byte[inputIconoZorro],0
+    je      pedirIconoOca
     mov     al,byte[inputIconoZorro]
     mov     [iconoZorro],al
 
-    ;mInterrumpirOGuardarPartida byte[inputIconoZorro]
-
 pedirIconoOca:
-    mov     rdi,msgElegiriconoOca
-    mPrintf
+    mPuts   msgElegiriconoOca
+    mImprimirPrompt
     mGets   inputIconoOca
+    mInterrumpirPartida byte[inputIconoOca]
+    cmp     byte[inputIconoOca],0
+    je      setearTablero
     mov     al,byte[inputIconoOca]
     mov     [iconoOca],al
 
-    ;mInterrumpirOGuardarPartida byte[inputIconoOca]
-
+setearTablero:
     mov     rdi,tablero
     xor     rsi,rsi
     mov     sil,[orientacionTablero]
@@ -262,7 +281,7 @@ loopPrincipal:
     je      ganoZorro
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 verZorroEncerrado:
-    mov     rbx,[desplazamientoZorro]   ;posicion del zorro
+    mov     rbx,[desplazamientoZorro]   ; posicion del zorro
     xor     rdx,rdx                     ; (rdx) = 0
     mov     rax,rbx                     ; (rax) = desplazamiento del zorro en el tablero
     mov     r15,LONGITUD_FILA
@@ -270,156 +289,156 @@ verZorroEncerrado:
     inc     rdx                         ; (rdx) = columna zorro = resto + 1
     inc     rax                         ; (rax) = fila zorro = cociente + 1
 
-izquierda:
+verSiZorroPuedeMoverseIzquierda:
     cmp     rdx,COL_MIN
-    je      derecha
+    je      verSiZorroPuedeMoverseDerecha
      
-    cmp     byte[tablero + rbx - LONGITUD_ELEM],' '
+    cmp     byte[tablero + rbx + DESPLAZ_IZQ],' '
     je      continuarJuego
     mov     al,[iconoOca]
-    cmp     byte[tablero + rbx - LONGITUD_ELEM],al
+    cmp     byte[tablero + rbx + DESPLAZ_IZQ],al
     je      verificarColumnaIzq
-    jmp     derecha
+    jmp     verSiZorroPuedeMoverseDerecha
 
 verificarColumnaIzq:
     cmp     rdx,SIG_COL_MIN
-    je      derecha
-    cmp     byte[tablero + rbx - LONGITUD_ELEM - LONGITUD_ELEM],' '
+    je      verSiZorroPuedeMoverseDerecha
+    cmp     byte[tablero + rbx + DESPLAZ_IZQ + DESPLAZ_IZQ],' '
     je      continuarJuego
 
-derecha:
+verSiZorroPuedeMoverseDerecha:
     cmp     rdx,COL_MAX
-    je      diagonalDerAbajo
+    je      verSiZorroPuedeMoverseAbajoDerecha
      
-    cmp     byte[tablero + rbx + LONGITUD_ELEM],' '
+    cmp     byte[tablero + rbx + DESPLAZ_DER],' '
     je      continuarJuego
     mov     al,[iconoOca]
-    cmp     byte[tablero + rbx + LONGITUD_ELEM],al
+    cmp     byte[tablero + rbx + DESPLAZ_DER],al
     je      verificarColumnaDer
-    jmp     diagonalDerAbajo
+    jmp     verSiZorroPuedeMoverseAbajoDerecha
 
 verificarColumnaDer:
     cmp     rdx,SIG_COL_MAX
-    je      diagonalDerAbajo
-    cmp     byte[tablero + rbx + LONGITUD_ELEM + LONGITUD_ELEM],' '
+    je      verSiZorroPuedeMoverseAbajoDerecha
+    cmp     byte[tablero + rbx + DESPLAZ_DER + DESPLAZ_DER],' '
     je      continuarJuego
 
-diagonalDerAbajo:
+verSiZorroPuedeMoverseAbajoDerecha:
     cmp     rdx,COL_MAX
-    je      abajo
+    je      verSiZorroPuedeMoverseAbajo
     cmp     rax,FIL_MAX
-    je      abajo
+    je      verSiZorroPuedeMoverseAbajo
      
-    cmp     byte[tablero + rbx + LONGITUD_ELEM + LONGITUD_FILA],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ_DER],' '
     je      continuarJuego
     mov     al,[iconoOca]
-    cmp     byte[tablero + rbx + LONGITUD_ELEM + LONGITUD_FILA],al
-    je      verificarFilaColumnaDiagonalDerAbajo
-    jmp     abajo
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ_DER],al
+    je      verificarFilaColumnaDiagonalAbajoDerecha
+    jmp     verSiZorroPuedeMoverseAbajo
 
-verificarFilaColumnaDiagonalDerAbajo:
+verificarFilaColumnaDiagonalAbajoDerecha:
     cmp     rdx,SIG_COL_MAX
-    je      abajo
+    je      verSiZorroPuedeMoverseAbajo
     cmp     rax,SIG_FIL_MAX
-    je      abajo
-    cmp     byte[tablero + rbx + LONGITUD_ELEM + LONGITUD_FILA + LONGITUD_ELEM + LONGITUD_FILA],' '
+    je      verSiZorroPuedeMoverseAbajo
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ_DER + DESPLAZ_ABJ_DER],' '
     je      continuarJuego
 
-abajo:
+verSiZorroPuedeMoverseAbajo:
     cmp     rax,FIL_MAX  
-    je      diagonalIzqAbajo
+    je      verSiZorroPuedeMoverseAbajoIzquierda
      
-    cmp     byte[tablero + rbx + LONGITUD_FILA],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ],' '
     je      continuarJuego
     mov     al,[iconoOca]
-    cmp     byte[tablero + rbx + LONGITUD_FILA],al
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ],al
     je      verificarFilaAbajo
-    jmp     diagonalIzqAbajo
+    jmp     verSiZorroPuedeMoverseAbajoIzquierda
 
 verificarFilaAbajo:
     cmp     rax,SIG_FIL_MAX
-    je      diagonalIzqAbajo
-    cmp     byte[tablero + rbx + LONGITUD_FILA + LONGITUD_FILA],' '
+    je      verSiZorroPuedeMoverseAbajoIzquierda
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ + DESPLAZ_ABJ],' '
     je      continuarJuego
 
-diagonalIzqAbajo:
+verSiZorroPuedeMoverseAbajoIzquierda:
     cmp     rdx,COL_MIN  
-    je      diagonalIzqArriba
+    je      verSiZorroPuedeMoverseArribaIzquierda
     cmp     rax,FIL_MAX  
-    je      diagonalIzqArriba
+    je      verSiZorroPuedeMoverseArribaIzquierda
      
-    cmp     byte[tablero + rbx + LONGITUD_FILA - LONGITUD_ELEM],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ_IZQ],' '
     je      continuarJuego
     mov     al,[iconoOca]
-    cmp     byte[tablero + rbx + LONGITUD_FILA - LONGITUD_ELEM],al
-    je      verificarFilaColumnaDiagonalIzqAbajo
-    jmp     diagonalIzqArriba
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ_IZQ],al
+    je      verificarFilaColumnaAbajoIzquierda
+    jmp     verSiZorroPuedeMoverseArribaIzquierda
 
-verificarFilaColumnaDiagonalIzqAbajo:
+verificarFilaColumnaAbajoIzquierda:
     cmp     rdx,SIG_COL_MIN
-    je      diagonalIzqArriba
+    je      verSiZorroPuedeMoverseArribaIzquierda
     cmp     rax,SIG_FIL_MAX
-    je      diagonalIzqArriba
-    cmp     byte[tablero + rbx + LONGITUD_FILA - LONGITUD_ELEM + LONGITUD_FILA - LONGITUD_ELEM],' '
+    je      verSiZorroPuedeMoverseArribaIzquierda
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ_IZQ + DESPLAZ_ABJ_IZQ],' '
     je      continuarJuego
     
-diagonalIzqArriba:
+verSiZorroPuedeMoverseArribaIzquierda:
     cmp     rdx,COL_MIN  
-    je      arriba
+    je      verSiZorroPuedeMoverseArriba
     cmp     rax,FIL_MIN 
-    je      arriba
+    je      verSiZorroPuedeMoverseArriba
      
-    cmp     byte[tablero + rbx - LONGITUD_FILA - LONGITUD_ELEM],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ARR_IZQ],' '
     je      continuarJuego
     mov     al,[iconoOca]
-    cmp     byte[tablero + rbx - LONGITUD_FILA - LONGITUD_ELEM],al
-    je      verificarFilaColumnaDiagonalIzqArriba
-    jmp     arriba
+    cmp     byte[tablero + rbx + DESPLAZ_ARR_IZQ],al
+    je      verificarFilaColumnaArribaIzquierda
+    jmp     verSiZorroPuedeMoverseArriba
 
-verificarFilaColumnaDiagonalIzqArriba:
+verificarFilaColumnaArribaIzquierda:
     cmp     rdx,SIG_COL_MIN
-    je      arriba
+    je      verSiZorroPuedeMoverseArriba
     cmp     rax,SIG_FIL_MIN
-    je      arriba
-    cmp     byte[tablero + rbx - LONGITUD_FILA - LONGITUD_ELEM - LONGITUD_FILA - LONGITUD_ELEM],' '
+    je      verSiZorroPuedeMoverseArriba
+    cmp     byte[tablero + rbx + DESPLAZ_ARR_IZQ + DESPLAZ_ARR_IZQ],' '
     je      continuarJuego
 
-arriba:
+verSiZorroPuedeMoverseArriba:
     cmp     rax,FIL_MIN 
-    je      diagonalDerArriba
+    je      verSiZorroPuedeMoverseArribaDerecha
      
-    cmp     byte[tablero + rbx - LONGITUD_FILA],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ARR],' '
     je      continuarJuego
     mov     al,[iconoOca]
-    cmp     byte[tablero + rbx - LONGITUD_FILA],al
+    cmp     byte[tablero + rbx + DESPLAZ_ARR],al
     je      verificarFilaArriba
-    jmp     diagonalDerArriba
+    jmp     verSiZorroPuedeMoverseArribaDerecha
 
 verificarFilaArriba:
     cmp     rax,SIG_FIL_MIN
-    je      diagonalDerArriba
-    cmp     byte[tablero + rbx - LONGITUD_FILA - LONGITUD_FILA],' '
+    je      verSiZorroPuedeMoverseArribaDerecha
+    cmp     byte[tablero + rbx + DESPLAZ_ARR + DESPLAZ_ARR],' '
     je      continuarJuego
 
-diagonalDerArriba:
+verSiZorroPuedeMoverseArribaDerecha:
     cmp     rdx,COL_MAX
     je      ganaronOcas
     cmp     rax,FIL_MIN 
     je      ganaronOcas
      
-    cmp     byte[tablero + rbx - LONGITUD_FILA + LONGITUD_ELEM],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ARR_DER],' '
     je      continuarJuego
     mov     al,[iconoOca]
-    cmp     byte[tablero + rbx - LONGITUD_FILA + LONGITUD_ELEM],al
-    je      verificarFilaColumnaDiagonalDerArriba
+    cmp     byte[tablero + rbx + DESPLAZ_ARR_DER],al
+    je      verificarFilaColumnaArribaDerecha
     jmp     ganaronOcas
 
-verificarFilaColumnaDiagonalDerArriba:
+verificarFilaColumnaArribaDerecha:
     cmp     rdx,SIG_COL_MAX
     je      ganaronOcas
     cmp     rax,SIG_FIL_MIN
     je      ganaronOcas
-    cmp     byte[tablero + rbx - LONGITUD_FILA + LONGITUD_ELEM - LONGITUD_FILA + LONGITUD_ELEM ],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ARR_DER + DESPLAZ_ARR_DER],' '
     jne     ganaronOcas
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -434,9 +453,11 @@ continuarJuego:
 pedirMovimientoZorro:
     mPuts   msgTurnoZorro
     mPuts   msgMovimientoZorro
+    mImprimirPrompt
     mGets   movimientoZorro
 
-    mInterrumpirOGuardarPartida byte[movimientoZorro]
+    mInterrumpirPartida byte[movimientoZorro]
+    mGuardarPartida     byte[movimientoZorro]
 
     sub     rsp,8
     call    validarMovimientoZorro
@@ -566,10 +587,13 @@ compararVacio:
 ; MOVER OCAS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 moverOcas:
     mPuts   msgTurnoOcas
+pedirPosicionOca:
     mPuts   msgPedirPosicionOca
+    mImprimirPrompt
     mGets   posicionOca
 
-    mInterrumpirOGuardarPartida byte[posicionOca]
+    mInterrumpirPartida byte[posicionOca]
+    mGuardarPartida     byte[posicionOca]
 
     mov     rdi,posicionOca
     mov     rsi,formatoPosicionOca
@@ -578,7 +602,7 @@ moverOcas:
     mSscanf
 
     cmp     rax,2
-    jl      moverOcas
+    jl      pedirPosicionOca
 
     xor     rdi,rdi
     mov     dil,[filOca]
@@ -591,13 +615,12 @@ moverOcas:
     add     rsp,8
 
     mov     rbx,rax
-    mov     [posMovimientoOca],rax
     mov     al,byte[tablero + rbx]
     cmp     al,[iconoOca]
     je      verSiOcaPuedeMoverse
 
     mPuts   msgNoHayOca
-    jmp     moverOcas
+    jmp     pedirPosicionOca
 
 verSiOcaPuedeMoverse:
 verSiOcaPuedeMoverseIzq:
@@ -626,13 +649,15 @@ verSiOcaPuedeMoverseAbj:
 
 ocaNoPuedeMoverse:
     mPuts   msgOcaNoPuedeMoverse
-    jmp     moverOcas
+    jmp     pedirPosicionOca
 
 pedirMovimientoOca:
     mPuts   msgPedirMovimientoOca
+    mImprimirPrompt
     mGets   movimientoOca
 
-    mInterrumpirOGuardarPartida byte[movimientoOca]
+    mInterrumpirPartida byte[movimientoOca]
+    mGuardarPartida     byte[movimientoOca]
 
     sub     rsp,8
     call    validarMovimientoOca
@@ -641,17 +666,14 @@ pedirMovimientoOca:
     cmp     byte[RESULTMOVOCA],'S'
     jne     pedirMovimientoOca
 
-    mov     rbx,qword[posMovimientoOca]
     cmp     byte[movimientoOca],'A'
     jne     moverOcaDer
     cmp     byte[colOca],COL_MIN
     je      pedirMovimientoOca
-    sub     rbx,LONGITUD_ELEM
-    cmp     byte[tablero + rbx],' '
+    cmp     byte[tablero + rbx + DESPLAZ_IZQ],' '
     jne     pedirMovimientoOca
     mov     al,[iconoOca]
-    mov     [tablero + rbx],al
-    add     rbx,LONGITUD_ELEM
+    mov     [tablero + rbx + DESPLAZ_IZQ],al
     mov     byte[tablero + rbx],' '
     jmp     esTurnoZorro
 
@@ -660,12 +682,10 @@ moverOcaDer:
     jne     moverOcaArr
     cmp     byte[colOca],COL_MAX
     je      pedirMovimientoOca
-    add     rbx,LONGITUD_ELEM
-    cmp     byte[tablero + rbx],' '
+    cmp     byte[tablero + rbx + DESPLAZ_DER],' '
     jne     pedirMovimientoOca
     mov     al,[iconoOca]
-    mov     [tablero + rbx],al
-    sub     rbx,LONGITUD_ELEM
+    mov     [tablero + rbx + DESPLAZ_DER],al
     mov     byte[tablero + rbx],' '
     jmp     esTurnoZorro
 
@@ -674,24 +694,20 @@ moverOcaArr:
     jne     moverOcaAbj
     cmp     byte[filOca],FIL_MIN
     je      pedirMovimientoOca
-    sub     rbx,LONGITUD_FILA
-    cmp     byte[tablero + rbx],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ARR],' '
     jne     pedirMovimientoOca
     mov     al,[iconoOca]
-    mov     [tablero + rbx],al
-    add     rbx,LONGITUD_FILA
+    mov     [tablero + rbx + DESPLAZ_ARR],al
     mov     byte[tablero + rbx],' '
     jmp     esTurnoZorro
 
 moverOcaAbj:
     cmp     byte[filOca],FIL_MAX
     je      pedirMovimientoOca
-    add     rbx,LONGITUD_FILA
-    cmp     byte[tablero + rbx],' '
+    cmp     byte[tablero + rbx + DESPLAZ_ABJ],' '
     jne     pedirMovimientoOca
     mov     al,[iconoOca]
-    mov     [tablero + rbx],al
-    sub     rbx,LONGITUD_FILA
+    mov     [tablero + rbx + DESPLAZ_ABJ],al
     mov     byte[tablero + rbx],' '
 
 esTurnoZorro:
@@ -719,15 +735,22 @@ mostrarEstadisticas:
 
 guardarPartida:
 pedirNombreArchivoNuevaPartida:
-    mPuts   msgPedirNombreArchNuevaPartida
+    mPuts   msgPedirNombreNuevaPartida
+    mImprimirPrompt
     mGets   nombreArchNuevaPartida
-    
-    cmp    byte[nombreArchNuevaPartida],'c'
-    jmp loopPrincipal
 
-    ; acá deberíamos validar que el nombre cumple con cierto formato
-    ; (que la extensión es .dat y que len(nombre) >= 5)
+    mInterrumpirPartida byte[nombreArchNuevaPartida]
 
+    sub     rsp,8
+    call    validarNombreArchivo
+    add     rsp,8
+
+    cmp     byte[RESULTNOMBREARCH],'S'
+    je      verSiYaExisteArchivoConEseNombre
+    mPuts   msgNombreArchInvalido
+    jmp     pedirNombreArchivoNuevaPartida
+
+verSiYaExisteArchivoConEseNombre:
     mFopen  nombreArchNuevaPartida,modoAperturaArchLectura
     cmp     rax,0
     jle     crearNuevoArchivo
@@ -754,26 +777,28 @@ interrupcionDePartida:
 fin:
     ret
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; RUTINAS INTERNAS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 validarMovimientoZorro:
     mov     byte[RESULTMOVZORRO],'S'
 
-    cmp     byte[movimientoZorro],'Q'    ; Arriba-Izq
+    cmp     byte[movimientoZorro],'Q'   ; Arriba-Izq
     je      movimientoZorroValido
-    cmp     byte[movimientoZorro],'W'    ; Arriba
+    cmp     byte[movimientoZorro],'W'   ; Arriba
     je      movimientoZorroValido
-    cmp     byte[movimientoZorro],'E'    ; Arriba-Der
+    cmp     byte[movimientoZorro],'E'   ; Arriba-Der
     je      movimientoZorroValido
-    cmp     byte[movimientoZorro],'A'    ; Izq
+    cmp     byte[movimientoZorro],'A'   ; Izq
     je      movimientoZorroValido
-    cmp     byte[movimientoZorro],'S'    ; Abajo
+    cmp     byte[movimientoZorro],'S'   ; Abajo
     je      movimientoZorroValido
-    cmp     byte[movimientoZorro],'D'    ; Der
+    cmp     byte[movimientoZorro],'D'   ; Der
     je      movimientoZorroValido
-    cmp     byte[movimientoZorro],'Z'    ; Abajo-Izq
+    cmp     byte[movimientoZorro],'Z'   ; Abajo-Izq
     je      movimientoZorroValido
-    cmp     byte[movimientoZorro],'C'    ; Abajo-Der
+    cmp     byte[movimientoZorro],'C'   ; Abajo-Der
     je      movimientoZorroValido
 
     mov     byte[RESULTMOVZORRO],'N'
@@ -784,7 +809,7 @@ movimientoZorroValido:
 validarOrientacion:
     mov     byte[RESULTORIENTACION],'S'
 
-    cmp     byte[orientacionTablero],'N'    ; Sin orientación
+    cmp     byte[orientacionTablero],0      ; Sin orientación
     je      orientacionValida
     cmp     byte[orientacionTablero],'I'    ; Rotado 90° a Izq
     je      orientacionValida
@@ -831,7 +856,29 @@ validarEleccion:
 
 eleccionValida:
     ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+validarNombreArchivo:
+    mov     byte[RESULTNOMBREARCH],'N'
 
+    mov     rdi,nombreArchNuevaPartida
+    sub     rsp,8
+    call    strlen
+    add     rsp,8
 
-    
+    cmp     rax,5
+    jl      invalido
+
+    cmp     byte[nombreArchNuevaPartida + rax - 4],'.'
+    jne     invalido
+    cmp     byte[nombreArchNuevaPartida + rax - 3],'d'
+    jne     invalido
+    cmp     byte[nombreArchNuevaPartida + rax - 2],'a'
+    jne     invalido
+    cmp     byte[nombreArchNuevaPartida + rax - 1],'t'
+    jne     invalido
+
+    mov     byte[RESULTNOMBREARCH],'S'
+
+invalido:
+    ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
